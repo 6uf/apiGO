@@ -1,4 +1,4 @@
-module github.com/Liza-Developer/mcsn
+module github.com/Liza-Developer/mcapi
 
 go 1.17
 
