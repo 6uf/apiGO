@@ -99,56 +99,56 @@ func GetConfig(owo []byte) map[string]interface{} {
 }
 
 func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time, []string) {
-	var e int = 0
-	var boolVal bool
-	for _, account := range payloadInfo.AccountType {
-		go func() {
-			if account == "Giftcard" {
-				boolVal = true
-			} else if account == "Microsoft" {
-				boolVal = false
-			}
+	go func() {
+		var e int
 
-			if boolVal == true {
+		for xd, conn := range payloadInfo.Conns {
+			if payloadInfo.AccountType[xd] == "Giftcard" {
 				for i := 0; i < 6; {
 					go func() {
 						recvd := make([]byte, 4069)
 
-						fmt.Fprintln(payloadInfo.Conns[e], payloadInfo.Payload[e])
+						fmt.Fprintln(conn, payloadInfo.Payload[e])
 						sendTimes := time.Now()
-						payloadInfo.Conns[e].Read(recvd)
+						conn.Read(recvd)
 						recvTime := time.Now()
 
 						sendTime = append(sendTime, sendTimes)
 						recv = append(recv, recvTime)
 						statusCode = append(statusCode, string(recvd[9:12]))
 					}()
+
 					i++
 					time.Sleep(time.Duration(time.Duration(spread)*time.Microsecond) * time.Microsecond)
 				}
 
 				e++
 			} else {
-				for i := 0; float64(i) < 2; {
-					go func() {
-						recvd := make([]byte, 4069)
+				for _, conn := range payloadInfo.Conns {
+					for i := 0; i < 2; {
+						go func() {
+							recvd := make([]byte, 4069)
 
-						fmt.Fprintln(payloadInfo.Conns[e], payloadInfo.Payload[e])
-						sendTimes := time.Now()
-						payloadInfo.Conns[e].Read(recvd)
-						recvTime := time.Now()
+							fmt.Fprintln(conn, payloadInfo.Payload[e])
+							sendTimes := time.Now()
+							conn.Read(recvd)
+							recvTime := time.Now()
 
-						sendTime = append(sendTime, sendTimes)
-						recv = append(recv, recvTime)
-						statusCode = append(statusCode, string(recvd[9:12]))
-					}()
-					time.Sleep(time.Duration(time.Duration(spread)*time.Microsecond) * time.Microsecond)
-					i++
+							sendTime = append(sendTime, sendTimes)
+							recv = append(recv, recvTime)
+							statusCode = append(statusCode, string(recvd[9:12]))
+						}()
+
+						i++
+						time.Sleep(time.Duration(time.Duration(spread)*time.Microsecond) * time.Microsecond)
+					}
+
+					e++
 				}
-				e++
 			}
-		}()
-	}
+		}
+	}()
+
 	time.Sleep(time.Second * 5)
 
 	return sendTime, recv, statusCode
