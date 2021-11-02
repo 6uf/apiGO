@@ -16,6 +16,16 @@ import (
 	"time"
 )
 
+func init() {
+	fmt.Print(`
+   __  _____________  __
+  /  |/  / ___/ __/ |/ /
+ / /|_/ / /___\ \/    / 
+/_/  /_/\___/___/_/|_/  
+                        
+	`)
+}
+
 func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 	payload := make([]string, 0)
 	var conns []*tls.Conn
@@ -58,7 +68,7 @@ func PreSleep(dropTime int64) {
 	}
 }
 
-func dropTime(name string) int64 {
+func DropTime(name string) int64 {
 	resp, _ := http.NewRequest("GET",
 		"https://api.star.shopping/droptime/"+name,
 		nil)
