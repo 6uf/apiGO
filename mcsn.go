@@ -1,4 +1,4 @@
-package mcapi
+package mcsn
 
 import (
 	"bytes"
@@ -49,7 +49,7 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 func Sleep(dropTime int64, delay float64) {
 	dropStamp := time.Unix(dropTime, 0)
 
-	fmt.Println("\n\nPreparing to snipe..\n\n")
+	fmt.Println("\n\nPreparing to snipe..\n")
 
 	time.Sleep(time.Until(dropStamp.Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
 }
@@ -100,51 +100,56 @@ func GetConfig(owo []byte) map[string]interface{} {
 
 func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time, []string) {
 	var e int = 0
+	var boolVal bool
 	for _, account := range payloadInfo.AccountType {
-		if account == "Giftcard" {
-			for i := 0; i < 6; {
-				go func() {
-					recvd := make([]byte, 4069)
-
-					fmt.Fprintln(payloadInfo.Conns[e], payloadInfo.Payload[e])
-					sendTimes := time.Now()
-					payloadInfo.Conns[e].Read(recvd)
-					recvTime := time.Now()
-
-					sendTime = append(sendTime, sendTimes)
-					recv = append(recv, recvTime)
-					statusCode = append(statusCode, string(recvd[9:12]))
-				}()
-				i++
-				time.Sleep(time.Duration(time.Duration(spread) * time.Microsecond))
+		go func() {
+			if account == "Giftcard" {
+				boolVal = true
+			} else if account == "Microsoft" {
+				boolVal = false
 			}
 
-			e++
+			if boolVal == true {
+				for i := 0; i < 6; {
+					go func() {
+						recvd := make([]byte, 4069)
 
-		} else if account == "Microsoft" {
-			for i := 0; float64(i) < 2; {
-				go func() {
-					recvd := make([]byte, 4069)
+						fmt.Fprintln(payloadInfo.Conns[e], payloadInfo.Payload[e])
+						sendTimes := time.Now()
+						payloadInfo.Conns[e].Read(recvd)
+						recvTime := time.Now()
 
-					fmt.Fprintln(payloadInfo.Conns[e], payloadInfo.Payload[e])
-					sendTimes := time.Now()
-					payloadInfo.Conns[e].Read(recvd)
-					recvTime := time.Now()
+						sendTime = append(sendTime, sendTimes)
+						recv = append(recv, recvTime)
+						statusCode = append(statusCode, string(recvd[9:12]))
+					}()
+					i++
+					time.Sleep(time.Duration(time.Duration(spread)*time.Microsecond) * time.Microsecond)
+				}
 
-					sendTime = append(sendTime, sendTimes)
-					recv = append(recv, recvTime)
-					statusCode = append(statusCode, string(recvd[9:12]))
-				}()
-				time.Sleep(time.Duration(450*time.Microsecond) * time.Microsecond)
-				i++
+				e++
+			} else {
+				for i := 0; float64(i) < 2; {
+					go func() {
+						recvd := make([]byte, 4069)
+
+						fmt.Fprintln(payloadInfo.Conns[e], payloadInfo.Payload[e])
+						sendTimes := time.Now()
+						payloadInfo.Conns[e].Read(recvd)
+						recvTime := time.Now()
+
+						sendTime = append(sendTime, sendTimes)
+						recv = append(recv, recvTime)
+						statusCode = append(statusCode, string(recvd[9:12]))
+					}()
+					time.Sleep(time.Duration(time.Duration(spread)*time.Microsecond) * time.Microsecond)
+					i++
+				}
+				e++
 			}
-			e++
-		} else {
-			fmt.Println("Incorrect value?")
-		}
+		}()
 	}
-
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 5)
 
 	return sendTime, recv, statusCode
 }
