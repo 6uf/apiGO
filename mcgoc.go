@@ -1,4 +1,4 @@
-package mcgox
+package mcgoc
 
 import (
 	"bytes"
