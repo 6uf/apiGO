@@ -17,6 +17,16 @@ import (
 	"time"
 )
 
+func init() {
+	fmt.Print(`
+   __  _________________  _____
+  /  |/  / ___/ ___/ __ \/ ___/
+ / /|_/ / /__/ (_ / /_/ / /__  
+/_/  /_/\___/\___/\____/\___/  
+                               
+	`)
+}
+
 func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 	payload := make([]string, 0)
 	var conns []*tls.Conn
