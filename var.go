@@ -1,4 +1,4 @@
-package mcsn
+package mcapi
 
 import (
 	"crypto/tls"
