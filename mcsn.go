@@ -101,7 +101,7 @@ func GetConfig(owo []byte) map[string]interface{} {
 
 func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time, []string) {
 	var e int
-	for xd, conn := range payloadInfo.Conns {
+	for _, conn := range payloadInfo.Conns {
 
 		for i := 0; i < 6; {
 			go func() {
