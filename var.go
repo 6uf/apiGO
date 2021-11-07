@@ -1,4 +1,4 @@
-package mcserv
+package mcser
 
 import (
 	"crypto/tls"
