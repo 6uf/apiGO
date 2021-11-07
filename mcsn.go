@@ -23,7 +23,7 @@ func init() {
  / /|_/ / /__/ __ |/ ___// /  
 /_/  /_/\___/_/ |_/_/  /___/  
 
-V 1.0.1 <3
+V 1.25
 `)
 }
 
@@ -100,30 +100,17 @@ func GetConfig(owo []byte) map[string]interface{} {
 }
 
 func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time, []string) {
-	var e int
-	for _, conn := range payloadInfo.Conns {
 
-		for i := 0; i < 6; {
-			go func() {
-				recvd := make([]byte, 4069)
+	recvd := make([]byte, 4069)
 
-				fmt.Fprintln(conn, payloadInfo.Payload[e])
-				sendTimes := time.Now()
-				conn.Read(recvd)
-				recvTime := time.Now()
+	fmt.Fprintln(payloadInfo.Conns[0], payloadInfo.Payload[0])
+	sendTimes := time.Now()
+	payloadInfo.Conns[0].Read(recvd)
+	recvTime := time.Now()
 
-				sendTime = append(sendTime, sendTimes)
-				recv = append(recv, recvTime)
-				statusCode = append(statusCode, string(recvd[9:12]))
-			}()
-
-			i++
-			time.Sleep(time.Duration(time.Duration(spread)*time.Microsecond) * time.Microsecond)
-		}
-		e++
-	}
-
-	time.Sleep(time.Second * 5)
+	sendTime = append(sendTime, sendTimes)
+	recv = append(recv, recvTime)
+	statusCode = append(statusCode, string(recvd[9:12]))
 
 	return sendTime, recv, statusCode
 }
