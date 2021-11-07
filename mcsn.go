@@ -353,8 +353,8 @@ func Auth(accounts []string) (MCbearers, error) {
 			var bearerMS bearerMs
 			json.Unmarshal(bearerValue, &bearerMS)
 
-			accountType = func() []string {
-				var accountType []string
+			accountType = append(accountType, func() string {
+				var accountT string
 				conn, err := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
 				if err != nil {
 					fmt.Print(err)
@@ -371,12 +371,12 @@ func Auth(accounts []string) (MCbearers, error) {
 				// checks status codes..
 				switch string(e[9:12]) {
 				case `404`:
-					accountType = append(accountType, "Giftcard")
+					accountT = "Giftcard"
 				default:
-					accountType = append(accountType, "Microsoft")
+					accountT = "Microsoft"
 				}
-				return accountType
-			}()
+				return accountT
+			}())
 
 			bearerReturn = append(bearerReturn, bearerMS.Bearer)
 			i++
