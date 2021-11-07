@@ -1,4 +1,4 @@
-module github.com/Liza-Developer/mcser
+module github.com/Liza-Developer/mcapi
 
 go 1.17
 
