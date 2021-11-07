@@ -1,4 +1,4 @@
-package mcap
+package mca
 
 import (
 	"bytes"
@@ -114,7 +114,7 @@ func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time
 	return sendTime, recv, statusCode
 }
 
-func (server ServerInfo) SendWebhook(body []byte) (*http.Response, error) {
+func (server serverInfo) SendWebhook(body []byte) (*http.Response, error) {
 
 	webhookReq, err := http.NewRequest("POST", server.Webhook, bytes.NewReader(body))
 	if err != nil {
@@ -130,7 +130,7 @@ func (server ServerInfo) SendWebhook(body []byte) (*http.Response, error) {
 	return conn, nil
 }
 
-func (server ServerInfo) ChangeSkin(body []byte, bearer string) (*http.Response, error) {
+func (server serverInfo) ChangeSkin(body []byte, bearer string) (*http.Response, error) {
 
 	resp, err := http.NewRequest("POST", "https://api.minecraftservices.com/minecraft/profile/skins", bytes.NewBuffer(body))
 	if err != nil {
@@ -367,6 +367,8 @@ func Auth(accounts []string) (MCbearers, error) {
 				if err != nil {
 					fmt.Print(err)
 				}
+
+				fmt.Println(string(e[9:12]))
 
 				// checks status codes..
 				switch string(e[9:12]) {
