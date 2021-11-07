@@ -1,4 +1,4 @@
-package mcapi
+package mcapi2
 
 import (
 	"bytes"
