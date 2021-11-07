@@ -1,4 +1,4 @@
-package mcserv
+package mcser
 
 import (
 	"bytes"
@@ -360,7 +360,7 @@ func Auth(accounts []string) (MCbearers, error) {
 					fmt.Print(err)
 				}
 
-				fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Dismal/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+				fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Dismal/1.0\r\nAuthorization: Bearer "+bearerMS.Bearer+"\r\n\r\n")
 
 				e := make([]byte, 12)
 				_, err = conn.Read(e)
@@ -368,7 +368,7 @@ func Auth(accounts []string) (MCbearers, error) {
 					fmt.Print(err)
 				}
 
-				fmt.Println(string(e[9:12]))
+				fmt.Println(string(e))
 
 				// checks status codes..
 				switch string(e[9:12]) {
