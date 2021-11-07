@@ -1,4 +1,4 @@
-package mcser
+package mcapi
 
 import (
 	"crypto/tls"
