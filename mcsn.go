@@ -22,8 +22,7 @@ func init() {
   /  |/  / ___/ _ | / _ \/  _/
  / /|_/ / /__/ __ |/ ___// /  
 /_/  /_/\___/_/ |_/_/  /___/  
-
-V 1.25
+                               
 `)
 }
 
@@ -113,6 +112,39 @@ func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time
 	statusCode = append(statusCode, string(recvd[9:12]))
 
 	return sendTime, recv, statusCode
+}
+
+func (server serverInfo) SendWebhook(body []byte) (*http.Response, error) {
+
+	webhookReq, err := http.NewRequest("POST", server.Webhook, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	webhookReq.Header.Set("Content-Type", "application/json")
+
+	conn, err := http.DefaultClient.Do(webhookReq)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+func (server serverInfo) ChangeSkin(body []byte, bearer string) (*http.Response, error) {
+
+	resp, err := http.NewRequest("POST", "https://api.minecraftservices.com/minecraft/profile/skins", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Header.Set("Authorization", "bearer "+bearer)
+
+	skin, err := http.DefaultClient.Do(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return skin, nil
 }
 
 func Auth(accounts []string) (MCbearers, error) {
