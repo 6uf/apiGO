@@ -1,4 +1,4 @@
-package mcapi
+package mcap
 
 import (
 	"crypto/tls"
