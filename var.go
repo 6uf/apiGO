@@ -29,7 +29,7 @@ type bearerMs struct {
 	Bearer string `json:"access_token"`
 }
 
-type serverInfo struct {
+type ServerInfo struct {
 	Webhook string
 	SkinUrl string
 }
