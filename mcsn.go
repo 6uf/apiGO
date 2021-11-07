@@ -1,4 +1,4 @@
-package mcser
+package mcapi
 
 import (
 	"bytes"
@@ -367,8 +367,6 @@ func Auth(accounts []string) (MCbearers, error) {
 				if err != nil {
 					fmt.Print(err)
 				}
-
-				fmt.Println(string(e))
 
 				// checks status codes..
 				switch string(e[9:12]) {
