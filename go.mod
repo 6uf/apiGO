@@ -1,4 +1,4 @@
-module github.com/Liza-Developer/mcap
+module github.com/Liza-Developer/mca
 
 go 1.17
 
