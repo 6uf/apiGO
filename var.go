@@ -28,3 +28,8 @@ type Payload struct {
 type bearerMs struct {
 	Bearer string `json:"access_token"`
 }
+
+type serverInfo struct {
+	Webhook string
+	skinUrl string
+}
