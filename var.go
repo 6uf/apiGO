@@ -31,5 +31,5 @@ type bearerMs struct {
 
 type serverInfo struct {
 	Webhook string
-	skinUrl string
+	SkinUrl string
 }
