@@ -98,7 +98,7 @@ func GetConfig(owo []byte) map[string]interface{} {
 	return config
 }
 
-func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time, []string) {
+func (payloadInfo Payload) SocketSending(spread int64) (time.Time, time.Time, string)  {
 
 	recvd := make([]byte, 4069)
 
@@ -107,11 +107,7 @@ func (payloadInfo Payload) SocketSending(spread int64) ([]time.Time, []time.Time
 	payloadInfo.Conns[0].Read(recvd)
 	recvTime := time.Now()
 
-	sendTime = append(sendTime, sendTimes)
-	recv = append(recv, recvTime)
-	statusCode = append(statusCode, string(recvd[9:12]))
-
-	return sendTime, recv, statusCode
+	return sendTimes, recvTime, string(recvd[9:12])
 }
 
 func (server ServerInfo) SendWebhook(body []byte) (*http.Response, error) {
