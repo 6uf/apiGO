@@ -2,7 +2,6 @@ package mcapi2
 
 import (
 	"crypto/tls"
-	"time"
 )
 
 type MCbearers struct {
