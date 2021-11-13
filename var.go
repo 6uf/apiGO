@@ -13,9 +13,6 @@ type MCbearers struct {
 var (
 	redirect     string
 	bearerReturn string
-	sendTime     []time.Time
-	statusCode   []string
-	recv         []time.Time
 )
 
 type Payload struct {
