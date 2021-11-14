@@ -98,11 +98,11 @@ func GetConfig(owo []byte) map[string]interface{} {
 	return config
 }
 
-func (payloadInfo Payload) SocketSending(spread int64) (time.Time, time.Time, string)  {
+func (payloadInfo Payload) SocketSending(payloadInt int64) (time.Time, time.Time, string)  {
 
 	recvd := make([]byte, 4069)
 
-	fmt.Fprintln(payloadInfo.Conns[0], payloadInfo.Payload[0])
+	fmt.Fprintln(payloadInfo.Conns[payloadInt], payloadInfo.Payload[payloadInt])
 	sendTimes := time.Now()
 	payloadInfo.Conns[0].Read(recvd)
 	recvTime := time.Now()
