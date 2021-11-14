@@ -104,7 +104,7 @@ func (payloadInfo Payload) SocketSending(payloadInt int64) (time.Time, time.Time
 
 	fmt.Fprintln(payloadInfo.Conns[payloadInt], payloadInfo.Payload[payloadInt])
 	sendTimes := time.Now()
-	payloadInfo.Conns[0].Read(recvd)
+	payloadInfo.Conns[payloadInt].Read(recvd)
 	recvTime := time.Now()
 
 	return sendTimes, recvTime, string(recvd[9:12])
