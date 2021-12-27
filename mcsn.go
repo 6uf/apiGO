@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,11 +17,11 @@ import (
 
 func init() {
 	fmt.Print(`
-   __  ___________   ___  ____
-  /  |/  / ___/ _ | / _ \/  _/
- / /|_/ / /__/ __ |/ ___// /  
-/_/  /_/\___/_/ |_/_/  /___/  
-                               
+    __  _____________  __
+   /  |/  / ___/ __/ |/ /
+  / /|_/ / /___\ \/    / 
+ /_/  /_/\___/___/_/|_/  
+													 
 `)
 }
 
@@ -98,7 +97,7 @@ func GetConfig(owo []byte) map[string]interface{} {
 	return config
 }
 
-func (payloadInfo Payload) SocketSending(payloadInt int64) (time.Time, time.Time, string)  {
+func (payloadInfo Payload) SocketSending(payloadInt int64) (time.Time, time.Time, string) {
 
 	recvd := make([]byte, 4069)
 
@@ -146,6 +145,7 @@ func (server ServerInfo) ChangeSkin(body []byte, bearer string) (*http.Response,
 func Auth(accounts []string) (MCbearers, error) {
 	var bearerReturn []string
 	var i int
+	var g int
 	var accountType []string
 	for _, info := range accounts {
 		if i == 3 {
@@ -155,13 +155,11 @@ func Auth(accounts []string) (MCbearers, error) {
 		}
 
 		time.Sleep(time.Second)
+
 		email := strings.Split(info, ":")[0]
 		password := strings.Split(info, ":")[1]
 		var bearer string
-		jar, err := cookiejar.New(nil)
-		if err != nil {
-			return MCbearers{}, errors.New(fmt.Sprintf("Got error while creating cookie jar %s", err.Error()))
-		}
+		jar, _ := cookiejar.New(nil)
 
 		client := &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -171,25 +169,14 @@ func Auth(accounts []string) (MCbearers, error) {
 			Jar: jar,
 		}
 
-		resp, err := http.NewRequest("GET", "https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en", nil)
-		if err != nil {
-			return MCbearers{}, err
-		}
+		resp, _ := http.NewRequest("GET", "https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en", nil)
 
 		resp.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
 
-		response, err := client.Do(resp)
-		if err != nil {
-			return MCbearers{}, err
-		}
+		response, _ := client.Do(resp)
 
 		jar.Cookies(resp.URL)
-
-		bodyByte, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return MCbearers{}, err
-		}
-
+		bodyByte, _ := ioutil.ReadAll(response.Body)
 		myString := string(bodyByte[:])
 
 		search1 := regexp.MustCompile(`value="(.*?)"`)
@@ -203,39 +190,26 @@ func Auth(accounts []string) (MCbearers, error) {
 
 		body := []byte(fmt.Sprintf("login=%v&loginfmt=%v&passwd=%v&PPFT=%v", emailEncode, emailEncode, passwordEncode, value))
 
-		req, err := http.NewRequest("POST", urlPost, bytes.NewReader(body))
-
-		if err != nil {
-			return MCbearers{}, err
-		}
-
+		req, _ := http.NewRequest("POST", urlPost, bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+		client.Do(req)
 
-		_, err = client.Do(req)
-		if err != nil {
-			panic(err)
-		}
-
-		respBytes, err := ioutil.ReadAll(response.Body)
-
-		if err != nil {
-			panic(err)
-		}
+		respBytes, _ := ioutil.ReadAll(response.Body)
 
 		if strings.Contains(string(respBytes), "Sign in to") {
 			bearer = "Invalid"
-			return MCbearers{}, errors.New("Invalid Credentials")
+			fmt.Println("Invalid Credentials | " + email)
 		}
 
 		if strings.Contains(string(respBytes), "Help us protect your account") {
 			bearer = "Invalid"
-			return MCbearers{}, errors.New("Account has security questions!")
+			fmt.Println("Account has security questions! | " + email)
 		}
 
 		if !strings.Contains(redirect, "access_token") || redirect == urlPost {
 			bearer = "Invalid"
-			return MCbearers{}, errors.New("Invalid Credentials")
+			fmt.Println("Invalid Credentials | " + email)
 		}
 
 		if bearer != "Invalid" {
@@ -248,7 +222,6 @@ func Auth(accounts []string) (MCbearers, error) {
 			}
 
 			splitBear := strings.Split(redirect, "#")[1]
-
 			splitValues := strings.Split(splitBear, "&")
 
 			//refresh_token := strings.Split(splitValues[4], "=")[1]
@@ -256,23 +229,14 @@ func Auth(accounts []string) (MCbearers, error) {
 			//expires_in := strings.Split(splitValues[2], "=")[1]
 
 			body := []byte(`{"Properties": {"AuthMethod": "RPS", "SiteName": "user.auth.xboxlive.com", "RpsTicket": "` + access_token + `"}, "RelyingParty": "http://auth.xboxlive.com", "TokenType": "JWT"}`)
-			post, err := http.NewRequest("POST", "https://user.auth.xboxlive.com/user/authenticate", bytes.NewBuffer(body))
-			if err != nil {
-				return MCbearers{}, err
-			}
+			post, _ := http.NewRequest("POST", "https://user.auth.xboxlive.com/user/authenticate", bytes.NewBuffer(body))
 
 			post.Header.Set("Content-Type", "application/json")
 			post.Header.Set("Accept", "application/json")
 
-			bodyRP, err := client.Do(post)
-			if err != nil {
-				return MCbearers{}, err
-			}
+			bodyRP, _ := client.Do(post)
 
-			rpBody, err := ioutil.ReadAll(bodyRP.Body)
-			if err != nil {
-				return MCbearers{}, err
-			}
+			rpBody, _ := ioutil.ReadAll(bodyRP.Body)
 
 			Token := func(body string, key string) string {
 				keystr := "\"" + key + "\":[^,;\\]}]*"
@@ -281,7 +245,6 @@ func Auth(accounts []string) (MCbearers, error) {
 				keyValMatch := strings.Split(match, ":")
 				return strings.ReplaceAll(keyValMatch[1], "\"", "")
 			}(string(rpBody), "Token")
-
 			uhs := func(body string, key string) string {
 				keystr := "\"" + key + "\":[^,;\\]}]*"
 				r, _ := regexp.Compile(keystr)
@@ -291,33 +254,23 @@ func Auth(accounts []string) (MCbearers, error) {
 			}(string(rpBody), "uhs")
 
 			payload := []byte(`{"Properties": {"SandboxId": "RETAIL", "UserTokens": ["` + Token + `"]}, "RelyingParty": "rp://api.minecraftservices.com/", "TokenType": "JWT"}`)
-			xstsPost, err := http.NewRequest("POST", "https://xsts.auth.xboxlive.com/xsts/authorize", bytes.NewBuffer(payload))
-			if err != nil {
-				return MCbearers{}, err
-			}
-
+			xstsPost, _ := http.NewRequest("POST", "https://xsts.auth.xboxlive.com/xsts/authorize", bytes.NewBuffer(payload))
 			xstsPost.Header.Set("Content-Type", "application/json")
 			xstsPost.Header.Set("Accept", "application/json")
 
-			bodyXS, err := client.Do(xstsPost)
-			if err != nil {
-				return MCbearers{}, err
-			}
+			bodyXS, _ := client.Do(xstsPost)
 
-			xsBody, err := ioutil.ReadAll(bodyXS.Body)
-			if err != nil {
-				return MCbearers{}, err
-			}
+			xsBody, _ := ioutil.ReadAll(bodyXS.Body)
 
 			switch bodyXS.StatusCode {
 			case 401:
 				switch !strings.Contains(string(xsBody), "XErr") {
 				case !strings.Contains(string(xsBody), "2148916238"):
-
-					return MCbearers{}, errors.New("account belongs to someone under 18 and needs to be added to a family")
+					fmt.Println("account belongs to someone under 18 and needs to be added to a family | " + email)
+					continue
 				case !strings.Contains(string(xsBody), "2148916233"):
-
-					return MCbearers{}, errors.New("account has no Xbox account, you must sign up for one first")
+					fmt.Println("account has no Xbox account, you must sign up for one first | " + email)
+					continue
 				}
 			}
 
@@ -330,41 +283,26 @@ func Auth(accounts []string) (MCbearers, error) {
 			}(string(xsBody), "Token")
 
 			mcBearer := []byte(`{"identityToken" : "XBL3.0 x=` + uhs + `;` + xsToken + `", "ensureLegacyEnabled" : true}`)
-			mcBPOST, err := http.NewRequest("POST", "https://api.minecraftservices.com/authentication/login_with_xbox", bytes.NewBuffer(mcBearer))
-			if err != nil {
-				return MCbearers{}, err
-			}
+			mcBPOST, _ := http.NewRequest("POST", "https://api.minecraftservices.com/authentication/login_with_xbox", bytes.NewBuffer(mcBearer))
 
 			mcBPOST.Header.Set("Content-Type", "application/json")
 
-			bodyBearer, err := client.Do(mcBPOST)
-			if err != nil {
-				return MCbearers{}, err
-			}
+			bodyBearer, _ := client.Do(mcBPOST)
 
-			bearerValue, err := ioutil.ReadAll(bodyBearer.Body)
-			if err != nil {
-				return MCbearers{}, err
-			}
+			bearerValue, _ := ioutil.ReadAll(bodyBearer.Body)
+
 			var bearerMS bearerMs
 			json.Unmarshal(bearerValue, &bearerMS)
 
 			accountType = append(accountType, func() string {
 				var accountT string
-				conn, err := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
-				if err != nil {
-					fmt.Print(err)
-				}
+				conn, _ := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
 
 				fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Dismal/1.0\r\nAuthorization: Bearer "+bearerMS.Bearer+"\r\n\r\n")
 
 				e := make([]byte, 12)
-				_, err = conn.Read(e)
-				if err != nil {
-					fmt.Print(err)
-				}
+				conn.Read(e)
 
-				// checks status codes..
 				switch string(e[9:12]) {
 				case `404`:
 					accountT = "Giftcard"
@@ -375,9 +313,74 @@ func Auth(accounts []string) (MCbearers, error) {
 			}())
 
 			bearerReturn = append(bearerReturn, bearerMS.Bearer)
+			fmt.Println("[MICROSOFT] Authenticated " + email)
 			i++
 		} else {
-			i++
+			fmt.Println("[MICROSOFT] Couldnt Auth " + email + " Attempting Mojang Login")
+			if g == 10 {
+				fmt.Println("Sleeping for 30 seconds to avoid Mojang rate limit.")
+				time.Sleep(30 * time.Second)
+				g = 0
+			}
+
+			var access accessTokenResp
+			splitLogin := strings.Split(info, ":")
+			email := strings.Split(info, ":")[0]
+			password := strings.Split(info, ":")[1]
+
+			data := accessTokenReq{
+				Username: email,
+				Password: password,
+			}
+
+			bytesToSend, _ := json.Marshal(data)
+
+			req, _ := http.NewRequest("POST", "https://authserver.mojang.com/authenticate", bytes.NewBuffer(bytesToSend))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("User-Agent", "MCSN/1.0")
+
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				continue
+			}
+			if res.Status != "200 OK" {
+				continue
+			}
+			respData, _ := ioutil.ReadAll(res.Body)
+
+			err = json.Unmarshal(respData, &access)
+
+			if len(strings.Split(info, ":")) != 5 {
+				bearerReturn = append(bearerReturn, *access.AccessToken)
+				accountType = append(accountType, "Microsoft")
+			}
+			req, _ = http.NewRequest("GET", "https://api.mojang.com/user/security/challenges", nil)
+
+			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
+			res, _ = http.DefaultClient.Do(req)
+
+			respData, _ = ioutil.ReadAll(res.Body)
+
+			var security []securityRes
+			json.Unmarshal(respData, &security)
+
+			if len(security) != 3 {
+				continue
+			}
+			dataBytes := []byte(`[{"id": ` + strconv.Itoa(security[0].Answer.ID) + `, "answer": "` + splitLogin[2] + `"}, {"id": ` + strconv.Itoa(security[1].Answer.ID) + `, "answer": "` + splitLogin[3] + `"}, {"id": ` + strconv.Itoa(security[2].Answer.ID) + `, "answer": "` + splitLogin[4] + `"}]`)
+			req, _ = http.NewRequest("POST", "https://api.mojang.com/user/security/location", bytes.NewReader(dataBytes))
+
+			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
+			resp, _ := http.DefaultClient.Do(req)
+			if resp.StatusCode == 204 {
+				fmt.Println("[MOJANG] Authenticated " + email)
+				bearerReturn = append(bearerReturn, *access.AccessToken)
+				accountType = append(accountType, "Microsoft")
+			} else {
+				fmt.Println("[MOJANG] Couldnt Auth" + email)
+			}
+
+			g++
 		}
 	}
 
