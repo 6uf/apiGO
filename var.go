@@ -29,3 +29,24 @@ type ServerInfo struct {
 	Webhook string
 	SkinUrl string
 }
+
+type securityRes struct {
+	Answer answerRes `json:"answer"`
+}
+
+type answerRes struct {
+	ID int `json:"id"`
+}
+
+type loginResponse struct {
+	Token string `json:"accessToken"`
+}
+
+type accessTokenReq struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type accessTokenResp struct {
+	AccessToken *string `json:"accessToken"`
+}
