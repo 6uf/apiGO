@@ -344,8 +344,12 @@ func Auth(accounts []string) (MCbearers, error) {
 				continue
 			}
 			if res.Status != "200 OK" {
+				fmt.Println("[MOJANG] Couldnt Auth" + email)
 				continue
+			} else {
+				fmt.Println("[MOJANG] Authenticated " + email)
 			}
+			
 			respData, _ := ioutil.ReadAll(res.Body)
 
 			err = json.Unmarshal(respData, &access)
@@ -373,11 +377,10 @@ func Auth(accounts []string) (MCbearers, error) {
 			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
 			resp, _ := http.DefaultClient.Do(req)
 			if resp.StatusCode == 204 {
-				fmt.Println("[MOJANG] Authenticated " + email)
 				bearerReturn = append(bearerReturn, *access.AccessToken)
 				accountType = append(accountType, "Microsoft")
 			} else {
-				fmt.Println("[MOJANG] Couldnt Auth" + email)
+				fmt.Println("[MOJANG] Couldnt Submit Security Questions | " + email)
 			}
 
 			g++
