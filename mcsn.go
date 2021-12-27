@@ -316,7 +316,6 @@ func Auth(accounts []string) (MCbearers, error) {
 			fmt.Println("[MICROSOFT] Authenticated " + email)
 			i++
 		} else {
-			fmt.Println("[MICROSOFT] Couldnt Auth " + email + " Attempting Mojang Login")
 			if g == 10 {
 				fmt.Println("Sleeping for 30 seconds to avoid Mojang rate limit.")
 				time.Sleep(30 * time.Second)
