@@ -15,16 +15,6 @@ import (
 	"time"
 )
 
-func init() {
-	fmt.Print(`
-    __  _____________  __
-   /  |/  / ___/ __/ |/ /
-  / /|_/ / /___\ \/    / 
- /_/  /_/\___/___/_/|_/  
-													 
-`)
-}
-
 func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 	payload := make([]string, 0)
 	var conns []*tls.Conn
@@ -199,7 +189,6 @@ func Auth(accounts []string) (MCbearers, error) {
 
 		if strings.Contains(string(respBytes), "Sign in to") {
 			bearer = "Invalid"
-			fmt.Println("Invalid Credentials | " + email)
 		}
 
 		if strings.Contains(string(respBytes), "Help us protect your account") {
@@ -209,7 +198,6 @@ func Auth(accounts []string) (MCbearers, error) {
 
 		if !strings.Contains(redirect, "access_token") || redirect == urlPost {
 			bearer = "Invalid"
-			fmt.Println("Invalid Credentials | " + email)
 		}
 
 		if bearer != "Invalid" {
@@ -343,12 +331,8 @@ func Auth(accounts []string) (MCbearers, error) {
 				continue
 			}
 			if res.Status != "200 OK" {
-				fmt.Println("[MOJANG] Couldnt Auth" + email)
 				continue
-			} else {
-				fmt.Println("[MOJANG] Authenticated " + email)
 			}
-			
 			respData, _ := ioutil.ReadAll(res.Body)
 
 			err = json.Unmarshal(respData, &access)
@@ -376,10 +360,9 @@ func Auth(accounts []string) (MCbearers, error) {
 			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
 			resp, _ := http.DefaultClient.Do(req)
 			if resp.StatusCode == 204 {
+				fmt.Println("[MOJANG] Authenticated " + email)
 				bearerReturn = append(bearerReturn, *access.AccessToken)
 				accountType = append(accountType, "Microsoft")
-			} else {
-				fmt.Println("[MOJANG] Couldnt Submit Security Questions | " + email)
 			}
 
 			g++
