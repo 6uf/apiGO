@@ -1,4 +1,4 @@
-module github.com/Liza-Developer/m-api
+module github.com/Liza-Developer/mapi
 
 go 1.17
 
