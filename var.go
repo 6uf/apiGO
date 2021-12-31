@@ -1,4 +1,4 @@
-package mapi
+package mcapi
 
 import (
 	"crypto/tls"
