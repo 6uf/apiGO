@@ -23,7 +23,7 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 		if accountBearer.AccountType[i] == "Giftcard" {
 			payload = append(payload, fmt.Sprintf("POST /minecraft/profile HTTP/1.1\r\nHost: api.minecraftservices.com\r\nConnection: open\r\nContent-Length:%s\r\nContent-Type: application/json\r\nAccept: application/json\r\nAuthorization: Bearer %s\r\n\r\n"+string([]byte(`{"profileName":"`+name+`"}`))+"\r\n", strconv.Itoa(len(string([]byte(`{"profileName":"`+name+`"}`)))), bearer))
 		} else {
-			payload = append(payload, "PUT /minecraft/profile/name/"+name+" HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Medusa/1.0\r\nAuthorization: bearer "+bearer+"\r\n\r\n")
+			payload = append(payload, "PUT /minecraft/profile/name/"+name+" HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: bearer "+bearer+"\r\n\r\n")
 		}
 	}
 
@@ -94,6 +94,30 @@ func sum(array []float64) float64 {
 	}
 
 	return sum1
+}
+
+func checkChange(bearer string) bool {
+	conn, _ := tls.Dial("tcp", "api.minecraftservices.com:443", nil)
+	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+	
+	e := make([]byte, 100)
+	conn.Read(e)
+
+	authbytes := make([]byte, 4096)
+	auth := make(map[string]interface{})
+
+	conn.Read(authbytes)
+	conn.Close()
+
+	authbytes = []byte(strings.Split(strings.Split(string(authbytes), "\x00")[0], "\r\n\r\n")[1])
+	json.Unmarshal(authbytes, &auth)
+	
+	switch auth["nameChangeAllowed"].(bool) {
+	case false:
+		return false
+	}
+
+	return true
 }
 
 func (payloadInfo Payload) SocketSending(payloadInt int64) (time.Time, time.Time, string) {
