@@ -87,7 +87,7 @@ func GetConfig(owo []byte) map[string]interface{} {
 	return config
 }
 
-func sum(array []float64) float64 {
+func Sum(array []float64) float64 {
 	var sum1 float64
 	for _, ammount := range array {
 		sum1 = sum1 + ammount
@@ -96,7 +96,7 @@ func sum(array []float64) float64 {
 	return sum1
 }
 
-func checkChange(bearer string) bool {
+func CheckChange(bearer string) bool {
 	conn, _ := tls.Dial("tcp", "api.minecraftservices.com:443", nil)
 	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
 	
