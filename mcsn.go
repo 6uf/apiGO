@@ -87,6 +87,15 @@ func GetConfig(owo []byte) map[string]interface{} {
 	return config
 }
 
+func sum(array []float64) float64 {
+	var sum1 float64
+	for _, ammount := range array {
+		sum1 = sum1 + ammount
+	}
+
+	return sum1
+}
+
 func (payloadInfo Payload) SocketSending(payloadInt int64) (time.Time, time.Time, string) {
 
 	recvd := make([]byte, 4069)
