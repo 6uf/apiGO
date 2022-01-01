@@ -52,7 +52,7 @@ func PreSleep(dropTime int64) {
 
 	for {
 
-		fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("Dropping in %v    \r"))), aurora.Bold(aurora.Red(time.Until(delDroptime).Round(time.Second).Seconds()))))
+		fmt.Printf(aurora.Sprintf(aurora.Bold(aurora.White(("Dropping in %v    \r"))), aurora.Bold(aurora.Red(time.Until(delDroptime).Round(time.Second).Seconds()))))
 
 		time.Sleep(time.Second * 1)
 		if time.Until(dropStamp) <= 5*time.Second {
