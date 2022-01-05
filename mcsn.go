@@ -63,7 +63,7 @@ func PreSleep(dropTime int64) {
 
 func DropTime(name string) int64 {
 	resp, _ := http.NewRequest("GET",
-		"https://droptime.site/api/v2/name/"+name,
+		"http://api.star.shopping/droptime/"+name,
 		nil)
 
 	resp.Header.Set("user-agent", "Sniper")
