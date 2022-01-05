@@ -17,7 +17,7 @@ var (
 type Payload struct {
 	Payload     []string
 	Conns       []*tls.Conn
-	UNIX        int64 `json:"droptime"`
+	UNIX        int64 `json:"unix"`
 	AccountType []string
 }
 
