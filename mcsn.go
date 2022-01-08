@@ -274,7 +274,6 @@ func Auth() (MCbearers, error) {
 		j, _ := http.DefaultClient.Do(f)
 
 		if j.StatusCode == 401 {
-			fmt.Print(aurora.Sprintf(aurora.Bold(aurora.White("[MCSN] Account %v turned up invalid. Attempting to Reauth\n")), aurora.Bold(aurora.Red(strings.Split(m[3], ":")[0]))))
 			reAuth = append(reAuth, m[3])
 		} else {
 			wdad, _ := time.Parse(time.RFC850, m[1])
@@ -284,8 +283,6 @@ func Auth() (MCbearers, error) {
 			} else {
 				if CheckChange(m[0]) {
 					Confirmed = append(Confirmed, m[0]+"`"+m[1]+"`"+m[2]+"`"+m[3])
-				} else {
-					fmt.Print(aurora.Sprintf(aurora.Bold(aurora.White("[MCSN] Account %v cant name change\n")), aurora.Bold(aurora.Red(strings.Split(m[3], ":")[0]))))
 				}
 			}
 		}
@@ -319,7 +316,6 @@ func Auth() (MCbearers, error) {
 				j, _ := http.DefaultClient.Do(f)
 
 				if j.StatusCode == 401 {
-					fmt.Print(aurora.Sprintf(aurora.Bold(aurora.White("[MCSN] Account %v turned up invalid. Attempting to Reauth\n")), aurora.Bold(aurora.Red(strings.Split(m[3], ":")[0]))))
 					reAuth = append(reAuth, m[3])
 				} else {
 					wdad, _ := time.Parse(time.RFC850, m[1])
@@ -330,8 +326,6 @@ func Auth() (MCbearers, error) {
 						if CheckChange(m[0]) {
 							Confirmed = append(Confirmed, m[0]+"`"+m[1]+"`"+m[2]+"`"+m[3])
 							time.Sleep(time.Second)
-						} else {
-							fmt.Print(aurora.Sprintf(aurora.Bold(aurora.White("[MCSN] Account %v cant name change\n")), aurora.Bold(aurora.Red(strings.Split(m[3], ":")[0]))))
 						}
 					}
 				}
@@ -409,7 +403,6 @@ func authAcc(accounts []string) (MCbearers, error) {
 	}
 
 	spinner, _ := yacspin.New(cfg)
-	defer spinner.Stop()
 	spinner.Start()
 	spinner.Message(fmt.Sprintf("%v", aurora.Bold(aurora.White(("Authenticating your accounts..")))))
 
@@ -649,6 +642,8 @@ func authAcc(accounts []string) (MCbearers, error) {
 			g++
 		}
 	}
+
+	spinner.Stop()
 
 	return MCbearers{Bearers: bearerReturn, AccountType: accountType}, nil
 }
