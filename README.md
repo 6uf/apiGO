@@ -28,7 +28,7 @@ Some of this librarys features are;
 - Invalid bearer detection
 - Bearer caching for reusability
 - Built in multi account sniping support
-- Helper functions like Sum() ~gets the sum of a int array~ SendWebhook ~sends a discord webhook~ Droptime() ~Gets a names droptime value~ and ChangeSkin ~changes the accounts skin.~
+- Helper functions like Sum() `gets the sum of a int array` SendWebhook() `sends a discord webhook` Droptime() `Gets a names droptime value` and ChangeSkin `changes the accounts skin.`
 - A self hostable DISCORD BOT that manages your accounts, vpses and snipes. It has security so ONLY the DiscordID in your config.json can use it.
 - THERES ALOT MORE! and more to be included!
 
