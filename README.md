@@ -25,8 +25,6 @@ This is so the library can detect the values needed and also store the bearers i
 
 # Features
 
-Some of this librarys features are;
-
 - Invalid bearer detection
 - Bearer caching for reusability
 - Built in multi account sniping support
