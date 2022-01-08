@@ -36,6 +36,8 @@ This is so the library can detect the values needed and also store the bearers i
 
 This is a 60~ line multi account sniper i made using the Library, it supports GCs, Mojang and Microsoft accounts.
 
+If your looking for something more advanced feel free to check out my public snipers code [MCSN](https://github.com/Liza-Developer/mcsn)
+
 ```go
 package main
 
