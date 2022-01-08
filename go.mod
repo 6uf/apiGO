@@ -1,4 +1,4 @@
-module github.com/Liza-Developer/api
+module github.com/Liza-Developer/apiGO
 
 go 1.17
 
