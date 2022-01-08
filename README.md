@@ -1,6 +1,8 @@
-# apiGO
+# Introduction
+
 A library for Minecraft's name change api, this utilizes sockets and supports MSAUTH.
 
+Having issues? Feel free to join our [Discord](https://discord.gg/hPnsrrcbZ5) for support!
 
 # Usage Tutorial
 
