@@ -1,8 +1,8 @@
-# mcapi
+# apiGO
 A library for Minecraft's name change api, this utilizes sockets and supports MSAUTH.
 
 
-### Usage Tutorial
+# Usage Tutorial
 
 First you will need 2 files, a accounts.txt and a config.json
 
@@ -21,7 +21,7 @@ inside of the config.json will be;
 
 This is so the library can detect the values needed and also store the bearers it auths into the Bearers: [], the other info is used for sniper settings and the discord bot if you ever use it will store added vpses into the Vps: [] list.
 
-## Features
+# Features
 
 Some of this librarys features are;
 
