@@ -1,4 +1,4 @@
-package api
+package apiGO
 
 import (
 	"crypto/tls"
