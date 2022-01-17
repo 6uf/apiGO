@@ -211,6 +211,8 @@ func Auth() (MCbearers, error) {
 			if CheckChange(bearer) {
 				finalB = append(finalB, bearer)
 				finalA = append(finalA, isGC(bearer))
+			} else {
+				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Cannot Namechange | %v"))), aurora.Bold(aurora.Red(bearer[0:10]))))
 			}
 
 			time.Sleep(time.Second)
@@ -285,6 +287,8 @@ func Auth() (MCbearers, error) {
 			} else {
 				if CheckChange(m[0]) {
 					Confirmed = append(Confirmed, m[0]+"`"+m[1]+"`"+m[2]+"`"+m[3])
+				} else {
+					fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Cannot Namechange | %v"))), aurora.Bold(aurora.Red(strings.Split(m[3], ":")[0]))))
 				}
 			}
 		}
@@ -298,6 +302,8 @@ func Auth() (MCbearers, error) {
 			if CheckChange(acc) {
 				Confirmed = append(Confirmed, acc+"`"+time.Now().Add(time.Duration(time.Second*86400)).Format(time.RFC850)+"`"+bearerz.AccountType[i]+"`"+AccountsVer[i])
 				time.Sleep(time.Second)
+			} else {
+				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Cannot Namechange | %v"))), aurora.Bold(aurora.Red(strings.Split(AccountsVer[i], ":")[0]))))
 			}
 		}
 	}
@@ -328,6 +334,8 @@ func Auth() (MCbearers, error) {
 						if CheckChange(m[0]) {
 							Confirmed = append(Confirmed, m[0]+"`"+m[1]+"`"+m[2]+"`"+m[3])
 							time.Sleep(time.Second)
+						} else {
+							fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Cannot Namechange | %v"))), aurora.Bold(aurora.Red(strings.Split(m[3], ":")[0]))))
 						}
 					}
 				}
@@ -560,7 +568,7 @@ func authAcc(accounts []string) (MCbearers, error) {
 			}())
 
 			bearerReturn = append(bearerReturn, bearerMS.Bearer)
-			fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[MICROSOFT] Authenticated | %v"))), aurora.Bold(aurora.Red(email))))
+			fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Authenticated | %v"))), aurora.Bold(aurora.Red(email))))
 			i++
 		} else {
 			if g == 10 {
@@ -594,7 +602,7 @@ func authAcc(accounts []string) (MCbearers, error) {
 			}
 			respData, _ := ioutil.ReadAll(res.Body)
 
-			err = json.Unmarshal(respData, &access)
+			json.Unmarshal(respData, &access)
 
 			if len(strings.Split(info, ":")) != 5 {
 				bearerReturn = append(bearerReturn, *access.AccessToken)
@@ -619,7 +627,7 @@ func authAcc(accounts []string) (MCbearers, error) {
 			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
 			resp, _ := http.DefaultClient.Do(req)
 			if resp.StatusCode == 204 {
-				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[MOJANG] Authenticated | %v"))), aurora.Bold(aurora.Red(email))))
+				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Authenticated | %v"))), aurora.Bold(aurora.Red(email))))
 				bearerReturn = append(bearerReturn, *access.AccessToken)
 				accountType = append(accountType, "Microsoft")
 			} else {
