@@ -55,15 +55,25 @@ var (
 )
 
 func main() {
-
+	var AccountsVer []string
 	fmt.Print(" Name: \n>>")
 	fmt.Scan(&name)
 	fmt.Print("Delay: \n>>")
 	fmt.Scan(&delay)
 
 	fmt.Println()
+	
+	file, err := os.Open("accounts.txt")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		AccountsVer = append(AccountsVer, scanner.Text())
+	}
 
-	bearers, _ := apiGO.Auth()
+	bearers, _ := apiGO.Auth(AccountsVer)
 	dropTime := apiGO.DropTime(name)
 
 	apiGO.PreSleep(dropTime)
