@@ -500,7 +500,7 @@ func Bot() {
 
 	config := GetConfig(q)
 
-	if config[`DiscordBotToken`] != nil {
+	if config[`DiscordBotToken`].(string) != "" {
 		s, err = discordgo.New("Bot " + config[`DiscordBotToken`].(string))
 		if err != nil {
 			log.Fatalf("Invalid bot parameters: %v", err)
