@@ -44,7 +44,7 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 func Sleep(dropTime int64, delay float64) {
 	dropStamp := time.Unix(dropTime, 0)
 
-	sendI("\n\nPreparing to snipe..")
+	sendI("Preparing to snipe..")
 
 	time.Sleep(time.Until(dropStamp.Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
 }
@@ -61,6 +61,8 @@ func PreSleep(dropTime int64) {
 			break
 		}
 	}
+
+	fmt.Println()
 }
 
 func DropTime(name string) int64 {
