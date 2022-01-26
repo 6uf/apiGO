@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -176,23 +175,6 @@ func (server ServerInfo) ChangeSkin(body []byte, bearer string) (*http.Response,
 	return skin, nil
 }
 
-func grabArray(array []interface{}) ([]string, error) {
-	var list []string
-
-	if array != nil {
-		for _, names := range array {
-			list = append(list, names.(string))
-		}
-		if len(list) == 0 {
-			return nil, errors.New("empty")
-		}
-	} else {
-		return nil, errors.New("empty")
-	}
-
-	return list, nil
-}
-
 func writetoFile(str interface{}) {
 	v, _ := json.MarshalIndent(str, "", "  ")
 
@@ -209,6 +191,13 @@ func sendI(content string) {
 
 func sendS(content string) {
 	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("SUCCESS")))
+}
+
+func sendW(content string) string {
+	var value string
+	fmt.Print(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Yellow("WAIT")))
+	fmt.Scan(&value)
+	return value
 }
 
 func Auth(accounts []string) (MCbearers, error) {
@@ -493,36 +482,41 @@ func Bot() {
 
 	config := GetConfig(q)
 
-	s, err = discordgo.New("Bot " + config[`DiscordBotToken`].(string))
-	if err != nil {
-		log.Fatalf("Invalid bot parameters: %v", err)
-	}
+	if config[`DiscordBotToken`] == nil {
 
-	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-			h(s, i)
+	} else {
+		s, err = discordgo.New("Bot " + config[`DiscordBotToken`].(string))
+		if err != nil {
+			log.Fatalf("Invalid bot parameters: %v", err)
 		}
-	})
 
-	s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		log.Println("Bot is up!")
-	})
+		s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+				h(s, i)
+			}
+		})
 
-	err = s.Open()
-	if err != nil {
-		log.Fatalf("Cannot open the session: %v", err)
+		s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+			log.Println("Bot is up!")
+		})
+
+		err = s.Open()
+		if err != nil {
+			log.Fatalf("Cannot open the session: %v", err)
+		}
+
+		for _, command := range commands {
+			s.ApplicationCommandCreate(s.State.User.ID, "", command)
+		}
+
+		defer s.Close()
+
+		sendW("\nPress CTRL+C to Continue : ")
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt)
+		<-stop
+		sendI("Gracefully shutdowning")
 	}
-
-	for _, command := range commands {
-		s.ApplicationCommandCreate(s.State.User.ID, "", command)
-	}
-
-	defer s.Close()
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-	<-stop
-	log.Println("Gracefully shutdowning")
 }
 
 func remove(l []string, item string) []string {
