@@ -503,7 +503,7 @@ func Bot() {
 	if config[`DiscordBotToken`].(string) != "" {
 		s, err = discordgo.New("Bot " + config[`DiscordBotToken`].(string))
 		if err != nil {
-			log.Fatalf("Invalid bot parameters: %v", err)
+			sendE("Invalid bot parameters: " + err.Error())
 		}
 
 		s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -513,12 +513,12 @@ func Bot() {
 		})
 
 		s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-			log.Println("Bot is up!")
+			sendI("Bot is up!")
 		})
 
 		err = s.Open()
 		if err != nil {
-			log.Fatalf("Cannot open the session: %v", err)
+			sendE("Cannot open the session: " + err.Error())
 		}
 
 		for _, command := range commands {
