@@ -199,6 +199,18 @@ func writetoFile(str interface{}) {
 	ioutil.WriteFile("config.json", v, 0)
 }
 
+func sendE(content string) {
+	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Bold(aurora.Red("ERROR"))))
+}
+
+func sendI(content string) {
+	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Yellow("INFO")))
+}
+
+func sendS(content string) {
+	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("SUCCESS")))
+}
+
 func Auth(accounts []string) (MCbearers, error) {
 	var bearerReturn []string
 	var i int
@@ -206,7 +218,7 @@ func Auth(accounts []string) (MCbearers, error) {
 	var accountType []string
 	for _, info := range accounts {
 		if i == 3 {
-			fmt.Println(aurora.Bold(aurora.White(("[LOG] Sleeping to avoid rate limit. (1 Minute)"))))
+			sendI("Sleeping to avoid rate limit. (1 Minute)")
 			time.Sleep(time.Minute)
 			i = 0
 		}
@@ -256,17 +268,17 @@ func Auth(accounts []string) (MCbearers, error) {
 
 		if strings.Contains(string(respBytes), "Sign in to") {
 			bearer = "Invalid"
-			fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Couldnt Auth | %v"))), aurora.Bold(aurora.Red(email))))
+			sendI(fmt.Sprintf("Couldnt Auth | %v", email))
 		}
 
 		if strings.Contains(string(respBytes), "Help us protect your account") {
 			bearer = "Invalid"
-			fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("Account has security questions! | %v"))), aurora.Bold(aurora.Red(email))))
+			sendI(fmt.Sprintf("Account has security questions | %v", email))
 		}
 
 		if !strings.Contains(redirect, "access_token") || redirect == urlPost {
 			bearer = "Invalid"
-			fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Couldnt Auth | %v"))), aurora.Bold(aurora.Red(email))))
+			sendI(fmt.Sprintf("Couldnt Auth | %v", email))
 		}
 
 		if bearer != "Invalid" {
@@ -323,10 +335,10 @@ func Auth(accounts []string) (MCbearers, error) {
 			case 401:
 				switch !strings.Contains(string(xsBody), "XErr") {
 				case !strings.Contains(string(xsBody), "2148916238"):
-					fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("account belongs to someone under 18 and needs to be added to a family | %v"))), aurora.Bold(aurora.Red(email))))
+					sendI(fmt.Sprintf("Account belongs to someone under 18 and needs to be added to a family | %v", email))
 					continue
 				case !strings.Contains(string(xsBody), "2148916233"):
-					fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("account has no Xbox account, you must sign up for one first | %v"))), aurora.Bold(aurora.Red(email))))
+					sendI(fmt.Sprintf("Account has no Xbox account, you must sign up for one first | %v", email))
 					continue
 				}
 			}
@@ -370,11 +382,12 @@ func Auth(accounts []string) (MCbearers, error) {
 			}())
 
 			bearerReturn = append(bearerReturn, bearerMS.Bearer)
-			fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Authenticated | %v"))), aurora.Bold(aurora.Red(email))))
+
+			sendS(fmt.Sprintf("Authenticated | %v", email))
 			i++
 		} else {
 			if g == 10 {
-				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("Sleeping for %v seconds to avoid Mojang rate limit."))), aurora.Bold(aurora.Red("30"))))
+				sendI("Sleeping for 30 seconds to avoid Mojang rate limit")
 				time.Sleep(30 * time.Second)
 				g = 0
 			}
@@ -429,11 +442,11 @@ func Auth(accounts []string) (MCbearers, error) {
 			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
 			resp, _ := http.DefaultClient.Do(req)
 			if resp.StatusCode == 204 {
-				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Authenticated | %v"))), aurora.Bold(aurora.Red(email))))
+				sendS(fmt.Sprintf("Authenticated | %v", email))
 				bearerReturn = append(bearerReturn, *access.AccessToken)
 				accountType = append(accountType, "Microsoft")
 			} else {
-				fmt.Println(aurora.Sprintf(aurora.Bold(aurora.White(("[DISMAL] Couldnt Auth | %v"))), aurora.Bold(aurora.Red(email))))
+				sendI(fmt.Sprintf("Couldnt Auth | %v", email))
 			}
 
 			g++
