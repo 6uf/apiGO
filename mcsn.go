@@ -44,7 +44,7 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 func Sleep(dropTime int64, delay float64) {
 	dropStamp := time.Unix(dropTime, 0)
 
-	fmt.Println(aurora.Bold(aurora.White("\n\nPreparing to snipe..")))
+	sendI("\n\nPreparing to snipe..")
 
 	time.Sleep(time.Until(dropStamp.Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
 }
@@ -55,9 +55,7 @@ func PreSleep(dropTime int64) {
 	delDroptime := dropStamp.Add(-time.Second * 5)
 
 	for {
-
-		fmt.Printf(aurora.Sprintf(aurora.Bold(aurora.White(("Dropping in %v    \r"))), aurora.Bold(aurora.Red(time.Until(delDroptime).Round(time.Second).Seconds()))))
-
+		sendT(fmt.Sprintf("Dropping in %v    \r", time.Until(delDroptime).Round(time.Second).Seconds()))
 		time.Sleep(time.Second * 1)
 		if time.Until(dropStamp) <= 5*time.Second {
 			break
@@ -200,6 +198,10 @@ func sendW(content string) string {
 	return value
 }
 
+func sendT(content string) {
+	fmt.Print(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("TIMER")))
+}
+
 func Auth(accounts []string) (MCbearers, error) {
 	var bearerReturn []string
 	var i int
@@ -207,8 +209,16 @@ func Auth(accounts []string) (MCbearers, error) {
 	var accountType []string
 	for _, info := range accounts {
 		if i == 3 {
-			sendI("Sleeping to avoid rate limit. (1 Minute)")
-			time.Sleep(time.Minute)
+			dropStamp := time.Unix(time.Now().Add(time.Minute).Unix(), 0)
+			for {
+				sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
+				time.Sleep(time.Second * 1)
+
+				if time.Until(dropStamp) <= 0*time.Second {
+					break
+				}
+			}
+			fmt.Println()
 			i = 0
 		}
 
@@ -376,8 +386,16 @@ func Auth(accounts []string) (MCbearers, error) {
 			i++
 		} else {
 			if g == 10 {
-				sendI("Sleeping for 30 seconds to avoid Mojang rate limit")
-				time.Sleep(30 * time.Second)
+				dropStamp := time.Unix(time.Now().Add(30*time.Second).Unix(), 0)
+				for {
+					sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
+					time.Sleep(time.Second * 1)
+
+					if time.Until(dropStamp) <= 0*time.Second {
+						break
+					}
+				}
+				fmt.Println()
 				g = 0
 			}
 
@@ -508,6 +526,8 @@ func Bot() {
 		}
 
 		defer s.Close()
+	} else {
+		sendE("Unable to start the bot, please add a discord bot token to your config.")
 	}
 
 	sendW("\nPress CTRL+C to Continue : ")
