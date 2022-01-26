@@ -482,9 +482,7 @@ func Bot() {
 
 	config := GetConfig(q)
 
-	if config[`DiscordBotToken`] == nil {
-
-	} else {
+	if config[`DiscordBotToken`] != nil {
 		s, err = discordgo.New("Bot " + config[`DiscordBotToken`].(string))
 		if err != nil {
 			log.Fatalf("Invalid bot parameters: %v", err)
@@ -510,13 +508,13 @@ func Bot() {
 		}
 
 		defer s.Close()
-
-		sendW("\nPress CTRL+C to Continue : ")
-		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt)
-		<-stop
-		sendI("Gracefully shutdowning")
 	}
+
+	sendW("\nPress CTRL+C to Continue : ")
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+	sendI("Gracefully shutdowning")
 }
 
 func remove(l []string, item string) []string {
