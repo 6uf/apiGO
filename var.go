@@ -20,10 +20,10 @@ import (
 )
 
 type MCbearers struct {
-	Details []info
+	Details []Info
 }
 
-type info struct {
+type Info struct {
 	Bearer      string
 	AccountType string
 	Email       string

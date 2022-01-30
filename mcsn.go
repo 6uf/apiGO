@@ -322,7 +322,7 @@ func Auth(accounts []string) MCbearers {
 			var bearerMS bearerMs
 			json.Unmarshal(bearerValue, &bearerMS)
 
-			returnDetails.Details = append(returnDetails.Details, info{
+			returnDetails.Details = append(returnDetails.Details, Info{
 				Bearer:      bearerMS.Bearer,
 				Email:       email,
 				AccountType: accountInfo(bearerMS.Bearer),
@@ -337,7 +337,7 @@ func Auth(accounts []string) MCbearers {
 
 		bearer, emails, account := mojang(email, password, infos, g)
 		if bearer != "" {
-			returnDetails.Details = append(returnDetails.Details, info{
+			returnDetails.Details = append(returnDetails.Details, Info{
 				Bearer:      bearer,
 				Email:       emails,
 				AccountType: account,
