@@ -27,6 +27,7 @@ type Info struct {
 	Bearer      string
 	AccountType string
 	Email       string
+	Password    string
 }
 
 var (

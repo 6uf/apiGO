@@ -325,6 +325,7 @@ func Auth(accounts []string) MCbearers {
 			returnDetails.Details = append(returnDetails.Details, Info{
 				Bearer:      bearerMS.Bearer,
 				Email:       email,
+				Password:    password,
 				AccountType: accountInfo(bearerMS.Bearer),
 			})
 
@@ -335,11 +336,12 @@ func Auth(accounts []string) MCbearers {
 
 		sendI(fmt.Sprintf("Couldnt Auth Attempting Mojang Login | %v [MICROSOFT]", email))
 
-		bearer, emails, account := mojang(email, password, infos, g)
+		bearer, account := mojang(email, password, infos, g)
 		if bearer != "" {
 			returnDetails.Details = append(returnDetails.Details, Info{
 				Bearer:      bearer,
-				Email:       emails,
+				Email:       email,
+				Password:    password,
 				AccountType: account,
 			})
 		}
@@ -459,7 +461,7 @@ func accountInfo(bearer string) string {
 	return accountT
 }
 
-func mojang(email, password, info string, g int) (string, string, string) {
+func mojang(email, password, info string, g int) (string, string) {
 	if g == 10 {
 		dropStamp := time.Unix(time.Now().Add(30*time.Second).Unix(), 0)
 		for {
@@ -522,5 +524,5 @@ func mojang(email, password, info string, g int) (string, string, string) {
 			sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
 		}
 	}
-	return *access.AccessToken, email, "Microsoft"
+	return *access.AccessToken, "Microsoft"
 }
