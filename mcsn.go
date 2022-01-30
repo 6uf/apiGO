@@ -334,7 +334,7 @@ func Auth(accounts []string) MCbearers {
 			continue
 		}
 
-		sendI(fmt.Sprintf("Attempting Mojang Login | %v [MICROSOFT]", email))
+		sendI(fmt.Sprintf("Attempting Mojang Login | %v", email))
 
 		bearer, account := Mojang(email, password, infos, g)
 		if bearer != "" {
