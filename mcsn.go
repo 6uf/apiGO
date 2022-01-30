@@ -25,11 +25,11 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 	payload := make([]string, 0)
 	var conns []*tls.Conn
 
-	for i, bearer := range accountBearer.Bearers {
-		if accountBearer.AccountType[i] == "Giftcard" {
-			payload = append(payload, fmt.Sprintf("POST /minecraft/profile HTTP/1.1\r\nHost: api.minecraftservices.com\r\nConnection: open\r\nContent-Length:%s\r\nContent-Type: application/json\r\nAccept: application/json\r\nAuthorization: Bearer %s\r\n\r\n"+string([]byte(`{"profileName":"`+name+`"}`))+"\r\n", strconv.Itoa(len(string([]byte(`{"profileName":"`+name+`"}`)))), bearer))
+	for _, bearer := range accountBearer.Details {
+		if bearer.AccountType == "Giftcard" {
+			payload = append(payload, fmt.Sprintf("POST /minecraft/profile HTTP/1.1\r\nHost: api.minecraftservices.com\r\nConnection: open\r\nContent-Length:%s\r\nContent-Type: application/json\r\nAccept: application/json\r\nAuthorization: Bearer %s\r\n\r\n"+string([]byte(`{"profileName":"`+name+`"}`))+"\r\n", strconv.Itoa(len(string([]byte(`{"profileName":"`+name+`"}`)))), bearer.Bearer))
 		} else {
-			payload = append(payload, "PUT /minecraft/profile/name/"+name+" HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: bearer "+bearer+"\r\n\r\n")
+			payload = append(payload, "PUT /minecraft/profile/name/"+name+" HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: bearer "+bearer.Bearer+"\r\n\r\n")
 		}
 	}
 
@@ -38,7 +38,7 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 		conns = append(conns, conn)
 	}
 
-	return Payload{Payload: payload, Conns: conns, AccountType: accountBearer.AccountType}
+	return Payload{Payload: payload, Conns: conns}
 }
 
 func Sleep(dropTime int64, delay float64) {
@@ -69,21 +69,10 @@ func DropTime(name string) int64 {
 	resp, _ := http.NewRequest("GET",
 		"http://api.star.shopping/droptime/"+name,
 		nil)
-
 	resp.Header.Set("user-agent", "Sniper")
 
-	data, err := http.DefaultClient.Do(resp)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer data.Body.Close()
-
-	dropTimeBytes, err := ioutil.ReadAll(data.Body)
-	if err != nil {
-		fmt.Print(err)
-	}
-
+	data, _ := http.DefaultClient.Do(resp)
+	dropTimeBytes, _ := ioutil.ReadAll(data.Body)
 	var f Payload
 	json.Unmarshal(dropTimeBytes, &f)
 	return f.UNIX
@@ -204,12 +193,16 @@ func sendT(content string) {
 	fmt.Print(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("TIMER")))
 }
 
-func Auth(accounts []string) (MCbearers, error) {
-	var bearerReturn []string
+func Auth(accounts []string) MCbearers {
+	var returnDetails MCbearers
 	var i int
 	var g int
-	var accountType []string
-	for _, info := range accounts {
+
+	for _, infos := range accounts {
+
+		email := strings.Split(infos, ":")[0]
+		password := strings.Split(infos, ":")[1]
+
 		if i == 3 {
 			dropStamp := time.Unix(time.Now().Add(time.Minute).Unix(), 0)
 			for {
@@ -225,10 +218,6 @@ func Auth(accounts []string) (MCbearers, error) {
 		}
 
 		time.Sleep(time.Second)
-
-		email := strings.Split(info, ":")[0]
-		password := strings.Split(info, ":")[1]
-		var bearer string
 		jar, _ := cookiejar.New(nil)
 
 		client := &http.Client{
@@ -268,21 +257,12 @@ func Auth(accounts []string) (MCbearers, error) {
 		respBytes, _ := ioutil.ReadAll(response.Body)
 
 		if strings.Contains(string(respBytes), "Sign in to") {
-			bearer = "Invalid"
 			sendI(fmt.Sprintf("Couldnt Auth | %v", email))
-		}
-
-		if strings.Contains(string(respBytes), "Help us protect your account") {
-			bearer = "Invalid"
+		} else if strings.Contains(string(respBytes), "Help us protect your account") {
 			sendI(fmt.Sprintf("Account has security questions | %v", email))
-		}
-
-		if !strings.Contains(redirect, "access_token") || redirect == urlPost {
-			bearer = "Invalid"
+		} else if !strings.Contains(redirect, "access_token") || redirect == urlPost {
 			sendI(fmt.Sprintf("Couldnt Auth | %v", email))
-		}
-
-		if bearer != "Invalid" {
+		} else {
 			client := &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
@@ -308,20 +288,8 @@ func Auth(accounts []string) (MCbearers, error) {
 
 			rpBody, _ := ioutil.ReadAll(bodyRP.Body)
 
-			Token := func(body string, key string) string {
-				keystr := "\"" + key + "\":[^,;\\]}]*"
-				r, _ := regexp.Compile(keystr)
-				match := r.FindString(body)
-				keyValMatch := strings.Split(match, ":")
-				return strings.ReplaceAll(keyValMatch[1], "\"", "")
-			}(string(rpBody), "Token")
-			uhs := func(body string, key string) string {
-				keystr := "\"" + key + "\":[^,;\\]}]*"
-				r, _ := regexp.Compile(keystr)
-				match := r.FindString(body)
-				keyValMatch := strings.Split(match, ":")
-				return strings.ReplaceAll(keyValMatch[1], "\"", "")
-			}(string(rpBody), "uhs")
+			Token := grabTokens(string(rpBody), "Token")
+			uhs := grabTokens(string(rpBody), "uhs")
 
 			payload := []byte(`{"Properties": {"SandboxId": "RETAIL", "UserTokens": ["` + Token + `"]}, "RelyingParty": "rp://api.minecraftservices.com/", "TokenType": "JWT"}`)
 			xstsPost, _ := http.NewRequest("POST", "https://xsts.auth.xboxlive.com/xsts/authorize", bytes.NewBuffer(payload))
@@ -329,7 +297,6 @@ func Auth(accounts []string) (MCbearers, error) {
 			xstsPost.Header.Set("Accept", "application/json")
 
 			bodyXS, _ := client.Do(xstsPost)
-
 			xsBody, _ := ioutil.ReadAll(bodyXS.Body)
 
 			switch bodyXS.StatusCode {
@@ -344,125 +311,43 @@ func Auth(accounts []string) (MCbearers, error) {
 				}
 			}
 
-			xsToken := func(body string, key string) string {
-				keystr := "\"" + key + "\":[^,;\\]}]*"
-				r, _ := regexp.Compile(keystr)
-				match := r.FindString(body)
-				keyValMatch := strings.Split(match, ":")
-				return strings.ReplaceAll(keyValMatch[1], "\"", "")
-			}(string(xsBody), "Token")
-
+			xsToken := grabTokens(string(xsBody), "Token")
 			mcBearer := []byte(`{"identityToken" : "XBL3.0 x=` + uhs + `;` + xsToken + `", "ensureLegacyEnabled" : true}`)
 			mcBPOST, _ := http.NewRequest("POST", "https://api.minecraftservices.com/authentication/login_with_xbox", bytes.NewBuffer(mcBearer))
-
 			mcBPOST.Header.Set("Content-Type", "application/json")
 
 			bodyBearer, _ := client.Do(mcBPOST)
-
 			bearerValue, _ := ioutil.ReadAll(bodyBearer.Body)
 
 			var bearerMS bearerMs
 			json.Unmarshal(bearerValue, &bearerMS)
 
-			accountType = append(accountType, func() string {
-				var accountT string
-				conn, _ := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
+			returnDetails.Details = append(returnDetails.Details, info{
+				Bearer:      bearerMS.Bearer,
+				Email:       email,
+				AccountType: accountInfo(bearerMS.Bearer),
+			})
 
-				fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Dismal/1.0\r\nAuthorization: Bearer "+bearerMS.Bearer+"\r\n\r\n")
-
-				e := make([]byte, 12)
-				conn.Read(e)
-
-				switch string(e[9:12]) {
-				case `404`:
-					accountT = "Giftcard"
-				default:
-					accountT = "Microsoft"
-				}
-				return accountT
-			}())
-
-			bearerReturn = append(bearerReturn, bearerMS.Bearer)
-
-			sendS(fmt.Sprintf("Authenticated | %v", email))
+			sendS(fmt.Sprintf("Authenticated | %v [MICROSOFT]", email))
 			i++
-		} else {
-			if g == 10 {
-				dropStamp := time.Unix(time.Now().Add(30*time.Second).Unix(), 0)
-				for {
-					sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
-					time.Sleep(time.Second * 1)
-
-					if time.Until(dropStamp) <= 0*time.Second {
-						break
-					}
-				}
-				fmt.Println()
-				g = 0
-			}
-
-			var access accessTokenResp
-			splitLogin := strings.Split(info, ":")
-			email := strings.Split(info, ":")[0]
-			password := strings.Split(info, ":")[1]
-
-			data := accessTokenReq{
-				Username: email,
-				Password: password,
-			}
-
-			bytesToSend, _ := json.Marshal(data)
-
-			req, _ := http.NewRequest("POST", "https://authserver.mojang.com/authenticate", bytes.NewBuffer(bytesToSend))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("User-Agent", "MCSN/1.0")
-
-			res, err := http.DefaultClient.Do(req)
-			if err != nil {
-				continue
-			}
-			if res.Status != "200 OK" {
-				continue
-			}
-			respData, _ := ioutil.ReadAll(res.Body)
-
-			json.Unmarshal(respData, &access)
-
-			if len(strings.Split(info, ":")) != 5 {
-				bearerReturn = append(bearerReturn, *access.AccessToken)
-				accountType = append(accountType, "Microsoft")
-			}
-			req, _ = http.NewRequest("GET", "https://api.mojang.com/user/security/challenges", nil)
-
-			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
-			res, _ = http.DefaultClient.Do(req)
-
-			respData, _ = ioutil.ReadAll(res.Body)
-
-			var security []securityRes
-			json.Unmarshal(respData, &security)
-
-			if len(security) != 3 {
-				continue
-			}
-			dataBytes := []byte(`[{"id": ` + strconv.Itoa(security[0].Answer.ID) + `, "answer": "` + splitLogin[2] + `"}, {"id": ` + strconv.Itoa(security[1].Answer.ID) + `, "answer": "` + splitLogin[3] + `"}, {"id": ` + strconv.Itoa(security[2].Answer.ID) + `, "answer": "` + splitLogin[4] + `"}]`)
-			req, _ = http.NewRequest("POST", "https://api.mojang.com/user/security/location", bytes.NewReader(dataBytes))
-
-			req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
-			resp, _ := http.DefaultClient.Do(req)
-			if resp.StatusCode == 204 {
-				sendS(fmt.Sprintf("Authenticated | %v", email))
-				bearerReturn = append(bearerReturn, *access.AccessToken)
-				accountType = append(accountType, "Microsoft")
-			} else {
-				sendI(fmt.Sprintf("Couldnt Auth | %v", email))
-			}
-
-			g++
+			continue
 		}
+
+		sendI(fmt.Sprintf("Couldnt Auth Attempting Mojang Login | %v [MICROSOFT]", email))
+
+		bearer, emails, account := mojang(email, password, infos, g)
+		if bearer != "" {
+			returnDetails.Details = append(returnDetails.Details, info{
+				Bearer:      bearer,
+				Email:       emails,
+				AccountType: account,
+			})
+		}
+
+		g++
 	}
 
-	return MCbearers{Bearers: bearerReturn, AccountType: accountType}, nil
+	return returnDetails
 }
 
 func rewrite(accounts string) {
@@ -546,4 +431,96 @@ func remove(l []string, item string) []string {
 		}
 	}
 	return l
+}
+
+func grabTokens(body string, key string) string {
+	keystr := "\"" + key + "\":[^,;\\]}]*"
+	r, _ := regexp.Compile(keystr)
+	match := r.FindString(body)
+	keyValMatch := strings.Split(match, ":")
+	return strings.ReplaceAll(keyValMatch[1], "\"", "")
+}
+
+func accountInfo(bearer string) string {
+	var accountT string
+	conn, _ := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
+
+	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Dismal/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+
+	e := make([]byte, 12)
+	conn.Read(e)
+
+	switch string(e[9:12]) {
+	case `404`:
+		accountT = "Giftcard"
+	default:
+		accountT = "Microsoft"
+	}
+	return accountT
+}
+
+func mojang(email, password, info string, g int) (string, string, string) {
+	if g == 10 {
+		dropStamp := time.Unix(time.Now().Add(30*time.Second).Unix(), 0)
+		for {
+			sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
+			time.Sleep(time.Second * 1)
+
+			if time.Until(dropStamp) <= 0*time.Second {
+				break
+			}
+		}
+		fmt.Println()
+		g = 0
+	}
+
+	var access accessTokenResp
+	splitLogin := strings.Split(info, ":")
+
+	data := accessTokenReq{
+		Username: email,
+		Password: password,
+	}
+
+	bytesToSend, _ := json.Marshal(data)
+
+	reqs, _ := http.NewRequest("POST", "https://authserver.mojang.com/authenticate", bytes.NewBuffer(bytesToSend))
+	reqs.Header.Set("Content-Type", "application/json")
+	reqs.Header.Set("User-Agent", "MCSN/1.0")
+	res, err := http.DefaultClient.Do(reqs)
+
+	if err == nil {
+		if res.Status == "200 OK" {
+			respData, _ := ioutil.ReadAll(res.Body)
+			json.Unmarshal(respData, &access)
+			if len(strings.Split(info, ":")) == 5 {
+				req, _ := http.NewRequest("GET", "https://api.mojang.com/user/security/challenges", nil)
+
+				req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
+				res, _ = http.DefaultClient.Do(req)
+
+				respData, _ = ioutil.ReadAll(res.Body)
+
+				var security []securityRes
+				json.Unmarshal(respData, &security)
+
+				if len(security) == 3 {
+					dataBytes := []byte(`[{"id": ` + strconv.Itoa(security[0].Answer.ID) + `, "answer": "` + splitLogin[2] + `"}, {"id": ` + strconv.Itoa(security[1].Answer.ID) + `, "answer": "` + splitLogin[3] + `"}, {"id": ` + strconv.Itoa(security[2].Answer.ID) + `, "answer": "` + splitLogin[4] + `"}]`)
+					req, _ := http.NewRequest("POST", "https://api.mojang.com/user/security/location", bytes.NewReader(dataBytes))
+
+					req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
+					resps, _ := http.DefaultClient.Do(req)
+					if resps.StatusCode == 204 {
+						sendS(fmt.Sprintf("Authenticated | %v [MOJANG]", email))
+						g++
+					} else {
+						sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
+					}
+				}
+			}
+		} else {
+			sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
+		}
+	}
+	return *access.AccessToken, email, "Microsoft"
 }

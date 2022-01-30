@@ -20,8 +20,13 @@ import (
 )
 
 type MCbearers struct {
-	Bearers     []string
-	AccountType []string
+	Details []info
+}
+
+type info struct {
+	Bearer      string
+	AccountType string
+	Email       string
 }
 
 var (
@@ -964,10 +969,9 @@ var (
 )
 
 type Payload struct {
-	Payload     []string
-	Conns       []*tls.Conn
-	UNIX        int64 `json:"unix"`
-	AccountType []string
+	Payload []string
+	Conns   []*tls.Conn
+	UNIX    int64 `json:"unix"`
 }
 
 type bearerMs struct {
