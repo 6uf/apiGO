@@ -257,11 +257,11 @@ func Auth(accounts []string) MCbearers {
 		respBytes, _ := ioutil.ReadAll(response.Body)
 
 		if strings.Contains(string(respBytes), "Sign in to") {
-			sendI(fmt.Sprintf("Couldnt Auth | %v", email))
+			sendI(fmt.Sprintf("Couldnt Auth | %v [MICROSOFT]", email))
 		} else if strings.Contains(string(respBytes), "Help us protect your account") {
 			sendI(fmt.Sprintf("Account has security questions | %v", email))
 		} else if !strings.Contains(redirect, "access_token") || redirect == urlPost {
-			sendI(fmt.Sprintf("Couldnt Auth | %v", email))
+			sendI(fmt.Sprintf("Couldnt Auth | %v [MICROSOFT]", email))
 		} else {
 			client := &http.Client{
 				Transport: &http.Transport{
@@ -334,9 +334,9 @@ func Auth(accounts []string) MCbearers {
 			continue
 		}
 
-		sendI(fmt.Sprintf("Couldnt Auth Attempting Mojang Login | %v [MICROSOFT]", email))
+		sendI(fmt.Sprintf("Attempting Mojang Login | %v [MICROSOFT]", email))
 
-		bearer, account := mojang(email, password, infos, g)
+		bearer, account := Mojang(email, password, infos, g)
 		if bearer != "" {
 			returnDetails.Details = append(returnDetails.Details, Info{
 				Bearer:      bearer,
@@ -461,8 +461,8 @@ func accountInfo(bearer string) string {
 	return accountT
 }
 
-func mojang(email, password, info string, g int) (string, string) {
-	if g == 10 {
+func Mojang(email, password, security string, increment int) (string, string) {
+	if increment == 10 {
 		dropStamp := time.Unix(time.Now().Add(30*time.Second).Unix(), 0)
 		for {
 			sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
@@ -473,11 +473,11 @@ func mojang(email, password, info string, g int) (string, string) {
 			}
 		}
 		fmt.Println()
-		g = 0
+		increment = 0
 	}
 
 	var access accessTokenResp
-	splitLogin := strings.Split(info, ":")
+	splitLogin := strings.Split(security, ":")
 
 	data := accessTokenReq{
 		Username: email,
@@ -495,7 +495,7 @@ func mojang(email, password, info string, g int) (string, string) {
 		if res.Status == "200 OK" {
 			respData, _ := ioutil.ReadAll(res.Body)
 			json.Unmarshal(respData, &access)
-			if len(strings.Split(info, ":")) == 5 {
+			if len(strings.Split(security, ":")) == 5 {
 				req, _ := http.NewRequest("GET", "https://api.mojang.com/user/security/challenges", nil)
 
 				req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
@@ -514,11 +514,13 @@ func mojang(email, password, info string, g int) (string, string) {
 					resps, _ := http.DefaultClient.Do(req)
 					if resps.StatusCode == 204 {
 						sendS(fmt.Sprintf("Authenticated | %v [MOJANG]", email))
-						g++
+						increment++
 					} else {
 						sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
 					}
 				}
+			} else {
+				sendS(fmt.Sprintf("Authenticated | %v [MOJANG]", email))
 			}
 		} else {
 			sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
