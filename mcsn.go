@@ -510,6 +510,7 @@ func Mojang(email, password, security string, increment int) (string, string) {
 						increment++
 					} else {
 						sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
+						return "", ""
 					}
 				}
 			} else {
@@ -517,8 +518,10 @@ func Mojang(email, password, security string, increment int) (string, string) {
 			}
 		} else {
 			sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
+			return "", ""
 		}
 	}
+
 	return *access.AccessToken, "Microsoft"
 }
 
