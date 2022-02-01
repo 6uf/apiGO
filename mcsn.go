@@ -164,12 +164,6 @@ func (server ServerInfo) ChangeSkin(body []byte, bearer string) (*http.Response,
 	return skin, nil
 }
 
-func writetoFile(str interface{}) {
-	v, _ := json.MarshalIndent(str, "", "  ")
-
-	ioutil.WriteFile("config.json", v, 0)
-}
-
 func sendE(content string) {
 	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Bold(aurora.Red("ERROR"))))
 }
@@ -352,11 +346,10 @@ func Auth(accounts []string) MCbearers {
 	return returnDetails
 }
 
-func rewrite(accounts string) {
+func rewrite(path, accounts string) {
+	os.Create(path)
 
-	os.Create("accounts.txt")
-
-	file, _ := os.OpenFile("accounts.txt", os.O_RDWR, 0644)
+	file, _ := os.OpenFile(path, os.O_RDWR, 0644)
 	defer file.Close()
 
 	file.WriteAt([]byte(accounts), 0)
@@ -527,4 +520,77 @@ func Mojang(email, password, security string, increment int) (string, string) {
 		}
 	}
 	return *access.AccessToken, "Microsoft"
+}
+
+func (s *Config) ToJson() []byte {
+	b, _ := json.MarshalIndent(s, "", "  ")
+	return b
+}
+
+func (config *Config) SaveConfig() {
+	WriteFile("config.json", string(config.ToJson()))
+}
+
+func (s *Config) LoadState() {
+	data, err := ReadFile("config.json")
+	if err != nil {
+		sendI("No config file found, loading one.")
+		s.LoadFromFile()
+		s.GcReq = 2
+		s.MFAReq = 2
+		s.SpreadPerReq = 40
+		s.ChangeskinOnSnipe = true
+		s.ChangeSkinLink = "https://textures.minecraft.net/texture/516accb84322ca168a8cd06b4d8cc28e08b31cb0555eee01b64f9175cefe7b75"
+		s.SaveConfig()
+		return
+	}
+
+	json.Unmarshal([]byte(data), s)
+	s.LoadFromFile()
+}
+
+func (c *Config) LoadFromFile() {
+	// Load a config file
+
+	jsonFile, err := os.Open("config.json")
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		jsonFile, _ = os.Create("config.json")
+	}
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &c)
+}
+
+func WriteFile(path string, content string) {
+	ioutil.WriteFile(path, []byte(content), 0644)
+}
+
+func ReadFile(path string) ([]byte, error) {
+	return ioutil.ReadFile(path)
+}
+
+func Search(username string) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("https://droptime.site/api/v2/searches/%v", username))
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode < 300 {
+		var res Searches
+		err = json.Unmarshal(respBytes, &res)
+		if err != nil {
+			return "", err
+		}
+
+		return res.Searches, nil
+	}
+
+	return "", fmt.Errorf("failed to grab droptime with status %v and body %v", resp.Status, string(respBytes))
 }
