@@ -72,9 +72,17 @@ type Config struct {
 	MFAReq            int       `json:"MFAReq"`
 	ManualBearer      bool      `json:"ManualBearer"`
 	SpreadPerReq      int       `json:"SpreadPerReq"`
-	Vultr             string    `json:"VultrKey"`
+	Digital           string    `json:"DigitalOceanKey"`
 	Vps               []Vps     `json:"Vps"`
 	Task              []Task    `json:"Tasks"`
+	Logs              []Logs    `json:"logs"`
+}
+
+type Logs struct {
+	Email   string    `json:"email"`
+	Send    time.Time `json:"send"`
+	Recv    time.Time `json:"recv"`
+	Success bool      `json:"success"`
 }
 
 type Bearers struct {
