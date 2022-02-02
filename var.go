@@ -412,54 +412,35 @@ var (
 					return
 				}
 
-				if acc.Vps == nil || len(acc.Vps) == 0 {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Embeds: []*discordgo.MessageEmbed{
-								{
-									Author:      &discordgo.MessageEmbedAuthor{},
-									Color:       000000, // Green
-									Description: "```You have no vpses loaded, please add some.```",
-									Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-									Title:       "MCSN Errors",
-								},
-							},
-						},
+				if !strings.ContainsAny(i.ApplicationCommandData().Options[1].StringValue(), "3n 3c list 3l") {
+					acc.Task = append(acc.Task, Task{
+						Name: i.ApplicationCommandData().Options[1].StringValue(),
+						Type: "singlename",
+						Unix: DropTime(i.ApplicationCommandData().Options[1].StringValue()),
 					})
-					return
-
 				} else {
-					if !strings.ContainsAny(i.ApplicationCommandData().Options[1].StringValue(), "3n 3c list 3l") {
-						acc.Task = append(acc.Task, Task{
-							Name: i.ApplicationCommandData().Options[1].StringValue(),
-							Type: "singlename",
-							Unix: DropTime(i.ApplicationCommandData().Options[1].StringValue()),
-						})
-					} else {
-						acc.Task = append(acc.Task, Task{
-							Type: i.ApplicationCommandData().Options[1].StringValue(),
-						})
-					}
-
-					acc.SaveConfig()
-					acc.LoadState()
-
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Embeds: []*discordgo.MessageEmbed{
-								{
-									Author:      &discordgo.MessageEmbedAuthor{},
-									Color:       000000, // Green
-									Description: "```Succesfully created your task.```",
-									Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-									Title:       "MCSN Logs",
-								},
-							},
-						},
+					acc.Task = append(acc.Task, Task{
+						Type: i.ApplicationCommandData().Options[1].StringValue(),
 					})
 				}
+
+				acc.SaveConfig()
+				acc.LoadState()
+
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Author:      &discordgo.MessageEmbedAuthor{},
+								Color:       000000, // Green
+								Description: "```Succesfully created your task.```",
+								Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+								Title:       "MCSN Logs",
+							},
+						},
+					},
+				})
 			}()
 		},
 		"add-names": func(s *discordgo.Session, i *discordgo.InteractionCreate) {

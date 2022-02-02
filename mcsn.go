@@ -377,13 +377,8 @@ func sendEmbed(embed *discordgo.MessageEmbed, id string) {
 
 func Bot() {
 	var err error
-
-	q, _ := ioutil.ReadFile("config.json")
-
-	config := GetConfig(q)
-
-	if config[`DiscordBotToken`].(string) != "" {
-		s, err = discordgo.New("Bot " + config[`DiscordBotToken`].(string))
+	if acc.DiscordBotToken != "" {
+		s, err = discordgo.New("Bot " + acc.DiscordBotToken)
 		if err != nil {
 			sendE("Invalid bot parameters: " + err.Error())
 		}
