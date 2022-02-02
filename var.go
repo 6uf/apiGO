@@ -19,6 +19,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+func init() {
+	acc.LoadState()
+}
+
 type Payload struct {
 	Payload []string
 	Conns   []*tls.Conn
