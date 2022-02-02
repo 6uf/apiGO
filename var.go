@@ -591,9 +591,9 @@ func TaskThread() {
 
 				var conns []*govultr.Instance
 				var vultrClient *govultr.Client
-				if acc.Vultr != "" {
+				if acc.Digital != "" {
 					config := &oauth2.Config{}
-					ts := config.TokenSource(context.Background(), &oauth2.Token{AccessToken: acc.Vultr})
+					ts := config.TokenSource(context.Background(), &oauth2.Token{AccessToken: acc.Digital})
 					vultrClient = govultr.NewClient(oauth2.NewClient(context.Background(), ts))
 					for i := 0; i < len(acc.Task); {
 						res, _ := vultrClient.Instance.Create(context.Background(), &govultr.InstanceCreateReq{
