@@ -412,10 +412,11 @@ func Bot() {
 		sendE("Unable to start the bot, please add a discord bot token to your config.")
 	}
 
-	sendW("\nPress CTRL+C to Continue : ")
+	sendW("Press CTRL+C to Continue : ")
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 	<-stop
+	fmt.Println()
 	sendI("Gracefully shutdowning")
 }
 
