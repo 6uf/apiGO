@@ -4,19 +4,24 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/digitalocean/godo"
 	"github.com/pkg/sftp"
-	"github.com/vultr/govultr/v2"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/oauth2"
 )
 
 func init() {
@@ -122,12 +127,64 @@ type Output struct {
 	Accounts [][]Bearers `json:"accounts"`
 }
 
+func init() {
+	_, err := os.Stat("ssh")
+	if os.IsNotExist(err) {
+		os.Mkdir("ssh", 0755)
+
+		privateKey, err := generatePrivateKey(4096)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		privateKeyBytes = encodePrivateKeyToPEM(privateKey)
+
+		err = writeKeyToFile(privateKeyBytes, "./ssh/privatekey")
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		err = writeKeyToFile([]byte(publicKeyBytes), "./ssh/publickey.pub")
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		content, _ = ioutil.ReadFile("/ssh/publickey.pub")
+		Key, _, err = client.Keys.GetByFingerprint(context.TODO(), string(content))
+		if err != nil {
+			Key, _, _ = client.Keys.Create(context.TODO(), &godo.KeyCreateRequest{
+				Name:      "key",
+				PublicKey: string(content),
+			})
+		}
+	} else {
+		content, _ = ioutil.ReadFile("/ssh/publickey.pub")
+		privateKeyBytes, _ = ioutil.ReadFile("/ssh/publickey.pub")
+		Key, _, err = client.Keys.GetByFingerprint(context.TODO(), string(content))
+		if err != nil {
+			Key, _, _ = client.Keys.Create(context.TODO(), &godo.KeyCreateRequest{
+				Name:      "key",
+				PublicKey: string(content),
+			})
+		}
+	}
+}
+
 var (
-	redirect       string
-	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
-	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
-	s              *discordgo.Session
-	acc            Config
+	redirect        string
+	GuildID         = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
+	RemoveCommands  = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
+	s               *discordgo.Session
+	acc             Config
+	client          *godo.Client
+	Key             *godo.Key
+	privateKeyBytes []byte
+	content         []byte
 
 	commands = []*discordgo.ApplicationCommand{
 		{
@@ -565,7 +622,6 @@ func TaskThread() {
 		for _, task := range acc.Task {
 			// if less than 3 minutes is left
 			if task.Unix-time.Now().Unix() < 300 {
-
 				sendEmbed(&discordgo.MessageEmbed{
 					Author:      &discordgo.MessageEmbedAuthor{},
 					Color:       000000, // Green
@@ -574,27 +630,39 @@ func TaskThread() {
 					Title:       "MCSN Info",
 				}, acc.DiscordID)
 
-				var conns []*govultr.Instance
-				var vultrClient *govultr.Client
+				var conns []*godo.Droplet
 				if acc.Digital != "" {
-					config := &oauth2.Config{}
-					ts := config.TokenSource(context.Background(), &oauth2.Token{AccessToken: acc.Digital})
-					vultrClient = govultr.NewClient(oauth2.NewClient(context.Background(), ts))
+					client = godo.NewFromToken(acc.Digital)
 					for i := 0; i < len(acc.Task); {
-						res, _ := vultrClient.Instance.Create(context.Background(), &govultr.InstanceCreateReq{
-							Label:      "sniper-vpses",
-							Hostname:   "sniper-vpses",
-							Backups:    "disabled",
-							EnableIPv6: &[]bool{false}[0],
-							OsID:       362,
-							Plan:       "vc2-1c-2gb",
-							Region:     "nyc1",
+						newDroplet, _, err := client.Droplets.Create(context.TODO(), &godo.DropletCreateRequest{
+							Name:   "super-cool-droplet",
+							Region: "nyc3",
+							Size:   "s-1vcpu-1gb",
+							Image: godo.DropletCreateImage{
+								Slug: "ubuntu-20-04-x64",
+							},
+							SSHKeys: []godo.DropletCreateSSHKey{
+								{
+									ID:          Key.ID,
+									Fingerprint: Key.Fingerprint,
+								},
+							},
 						})
+						if err != nil {
+							sendEmbed(&discordgo.MessageEmbed{
+								Author:      &discordgo.MessageEmbedAuthor{},
+								Color:       000000, // Green
+								Description: "```Failed to build a VPS, continuing.```",
+								Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+								Title:       "MCSN Errors",
+							}, acc.DiscordID)
+						}
 
-						fmt.Println(res)
+						fmt.Println(newDroplet)
+						ip, _ := newDroplet.PublicIPv6()
 
-						if AddVps(res.MainIP, "22", res.DefaultPassword, "root") {
-							conns = append(conns, res)
+						if AddVps(ip, "22", "root") {
+							conns = append(conns, newDroplet)
 						}
 					}
 				}
@@ -659,22 +727,20 @@ func TaskThread() {
 				acc.LoadState()
 
 				for _, conn := range conns {
-					err := vultrClient.BareMetalServer.Delete(context.Background(), conn.ID)
-					if err != nil {
-						sendE(err.Error())
-					}
+					client.Droplets.Delete(context.TODO(), conn.ID)
 				}
 			}
 		}
 	}
 }
 
-func AddVps(ip, port, password, user string) bool {
+func AddVps(ip, port, user string) bool {
+	signer, _ := signerFromPem(privateKeyBytes, content)
 	conn, err := ssh.Dial("tcp", ip+":"+port, &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            user,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
+			ssh.PublicKeys(signer),
 		},
 	})
 	if err != nil {
@@ -691,10 +757,9 @@ func AddVps(ip, port, password, user string) bool {
 		} else {
 			if _, err := dstFile.ReadFrom(file); err == nil {
 				acc.Vps = append(acc.Vps, Vps{
-					IP:       ip,
-					Port:     port,
-					Password: password,
-					User:     user,
+					IP:   ip,
+					Port: port,
+					User: user,
 				})
 			}
 
@@ -715,4 +780,118 @@ func AddVps(ip, port, password, user string) bool {
 	}
 
 	return false
+}
+
+// generatePrivateKey creates a RSA Private Key of specified byte size
+func generatePrivateKey(bitSize int) (*rsa.PrivateKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, bitSize)
+	if err != nil {
+		return nil, err
+	}
+
+	err = privateKey.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+// encodePrivateKeyToPEM encodes Private Key from RSA to PEM format
+func encodePrivateKeyToPEM(privateKey *rsa.PrivateKey) []byte {
+	return pem.EncodeToMemory(&pem.Block{
+		Type:    "RSA PRIVATE KEY",
+		Headers: nil,
+		Bytes:   x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+}
+
+// generatePublicKey take a rsa.PublicKey and return bytes suitable for writing to .pub file
+// returns in the format "ssh-rsa ..."
+func generatePublicKey(privatekey *rsa.PublicKey) ([]byte, error) {
+	publicRsaKey, err := ssh.NewPublicKey(privatekey)
+	if err != nil {
+		return nil, err
+	}
+
+	return ssh.MarshalAuthorizedKey(publicRsaKey), nil
+}
+
+func writeKeyToFile(keyBytes []byte, saveFileTo string) error {
+	err := ioutil.WriteFile(saveFileTo, keyBytes, 0600)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Key saved to: %s", saveFileTo)
+	return nil
+}
+
+func signerFromPem(pemBytes []byte, password []byte) (ssh.Signer, error) {
+
+	// read pem block
+	err := errors.New("Pem decode failed, no key found")
+	pemBlock, _ := pem.Decode(pemBytes)
+	if pemBlock == nil {
+		return nil, err
+	}
+
+	// handle encrypted key
+	if x509.IsEncryptedPEMBlock(pemBlock) {
+		// decrypt PEM
+		pemBlock.Bytes, err = x509.DecryptPEMBlock(pemBlock, []byte(password))
+		if err != nil {
+			return nil, fmt.Errorf("Decrypting PEM block failed %v", err)
+		}
+
+		// get RSA, EC or DSA key
+		key, err := parsePemBlock(pemBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		// generate signer instance from key
+		signer, err := ssh.NewSignerFromKey(key)
+		if err != nil {
+			return nil, fmt.Errorf("Creating signer from encrypted key failed %v", err)
+		}
+
+		return signer, nil
+	} else {
+		// generate signer instance from plain key
+		signer, err := ssh.ParsePrivateKey(pemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("Parsing plain private key failed %v", err)
+		}
+
+		return signer, nil
+	}
+}
+
+func parsePemBlock(block *pem.Block) (interface{}, error) {
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("Parsing PKCS private key failed %v", err)
+		} else {
+			return key, nil
+		}
+	case "EC PRIVATE KEY":
+		key, err := x509.ParseECPrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("Parsing EC private key failed %v", err)
+		} else {
+			return key, nil
+		}
+	case "DSA PRIVATE KEY":
+		key, err := ssh.ParseDSAPrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("Parsing DSA private key failed %v", err)
+		} else {
+			return key, nil
+		}
+	default:
+		return nil, fmt.Errorf("Parsing private key failed, unsupported key type %q", block.Type)
+	}
 }
