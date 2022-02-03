@@ -127,7 +127,9 @@ type Output struct {
 	Accounts [][]Bearers `json:"accounts"`
 }
 
-func init() {
+func StartDigital() {
+	client = godo.NewFromToken(acc.Digital)
+
 	_, err := os.Stat("ssh")
 	if os.IsNotExist(err) {
 		os.Mkdir("ssh", 0755)
@@ -632,7 +634,6 @@ func TaskThread() {
 
 				var conns []*godo.Droplet
 				if acc.Digital != "" {
-					client = godo.NewFromToken(acc.Digital)
 					for i := 0; i < len(acc.Task); {
 						newDroplet, _, err := client.Droplets.Create(context.TODO(), &godo.DropletCreateRequest{
 							Name:   "super-cool-droplet",
@@ -828,7 +829,6 @@ func writeKeyToFile(keyBytes []byte, saveFileTo string) error {
 }
 
 func signerFromPem(pemBytes []byte, password []byte) (ssh.Signer, error) {
-
 	// read pem block
 	err := errors.New("Pem decode failed, no key found")
 	pemBlock, _ := pem.Decode(pemBytes)
