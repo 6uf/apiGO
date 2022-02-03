@@ -376,13 +376,6 @@ func Bot() {
 			sendE("Invalid bot parameters: " + err.Error())
 		}
 
-		cmds, _ := s.ApplicationCommands(s.State.User.ID, "")
-		if len(cmds) != 0 {
-			for _, command := range cmds {
-				s.ApplicationCommandDelete(s.State.User.ID, "", command.ID)
-			}
-		}
-
 		s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
 				h(s, i)
@@ -394,9 +387,8 @@ func Bot() {
 		s.ApplicationCommandBulkOverwrite(s.State.User.ID, "", commands)
 	} else {
 		sendE("Unable to start the bot, please add a discord bot token to your config.")
+		return
 	}
-
-	sendI("Bot is up!")
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)

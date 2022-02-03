@@ -8,6 +8,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -72,19 +73,19 @@ type Info struct {
 }
 
 type Config struct {
-	Bearers           []Bearers `json:"Bearers"`
-	ChangeSkinLink    string    `json:"ChangeSkinLink"`
-	ChangeskinOnSnipe bool      `json:"ChangeskinOnSnipe"`
-	DiscordBotToken   string    `json:"DiscordBotToken"`
-	DiscordID         string    `json:"DiscordID"`
-	GcReq             int       `json:"GcReq"`
-	MFAReq            int       `json:"MFAReq"`
-	ManualBearer      bool      `json:"ManualBearer"`
-	SpreadPerReq      int       `json:"SpreadPerReq"`
-	Digital           string    `json:"DigitalOceanKey"`
-	Vps               []Vps     `json:"Vps"`
-	Task              []Task    `json:"Tasks"`
-	Logs              []Logs    `json:"logs"`
+	ChangeSkinLink    string `json:"ChangeSkinLink"`
+	ChangeskinOnSnipe bool   `json:"ChangeskinOnSnipe"`
+	DiscordBotToken   string `json:"DiscordBotToken"`
+	DiscordID         string `json:"DiscordID"`
+	GcReq             int    `json:"GcReq"`
+	MFAReq            int    `json:"MFAReq"`
+	ManualBearer      bool   `json:"ManualBearer"`
+	SpreadPerReq      int    `json:"SpreadPerReq"`
+	Digital           string `json:"DigitalOceanKey"`
+
+	Bearers []Bearers `json:"Bearers"`
+	Task    []Task    `json:"Tasks"`
+	Logs    []Logs    `json:"logs"`
 }
 
 type Logs struct {
@@ -112,10 +113,10 @@ type Vps struct {
 }
 
 type Task struct {
-	Name     string `json:"name"`
-	Unix     int64  `json:"unix"`
-	Searches string `json:"searches"`
-	Type     string `json:"type"`
+	Name  string `json:"name"`
+	Unix  int64  `json:"unix"`
+	Type  string `json:"type"`
+	Delay int64  `json:"delay"`
 }
 
 type Searches struct {
@@ -125,56 +126,6 @@ type Searches struct {
 type Output struct {
 	Group    string      `json:"group"`
 	Accounts [][]Bearers `json:"accounts"`
-}
-
-func StartDigital() {
-	client = godo.NewFromToken(acc.Digital)
-
-	_, err := os.Stat("ssh")
-	if os.IsNotExist(err) {
-		os.Mkdir("ssh", 0755)
-
-		privateKey, err := generatePrivateKey(4096)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
-		publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
-		privateKeyBytes = encodePrivateKeyToPEM(privateKey)
-
-		err = writeKeyToFile(privateKeyBytes, "./ssh/privatekey")
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
-		err = writeKeyToFile([]byte(publicKeyBytes), "./ssh/publickey.pub")
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
-		content, _ = ioutil.ReadFile("/ssh/publickey.pub")
-		Key, _, err = client.Keys.GetByFingerprint(context.TODO(), string(content))
-		if err != nil {
-			Key, _, _ = client.Keys.Create(context.TODO(), &godo.KeyCreateRequest{
-				Name:      "key",
-				PublicKey: string(content),
-			})
-		}
-	} else {
-		content, _ = ioutil.ReadFile("/ssh/publickey.pub")
-		privateKeyBytes, _ = ioutil.ReadFile("/ssh/publickey.pub")
-		Key, _, err = client.Keys.GetByFingerprint(context.TODO(), string(content))
-		if err != nil {
-			Key, _, _ = client.Keys.Create(context.TODO(), &godo.KeyCreateRequest{
-				Name:      "key",
-				PublicKey: string(content),
-			})
-		}
-	}
 }
 
 var (
@@ -187,6 +138,8 @@ var (
 	Key             *godo.Key
 	privateKeyBytes []byte
 	content         []byte
+	accNum          int = 0
+	increase        int = 0
 
 	commands = []*discordgo.ApplicationCommand{
 		{
@@ -230,10 +183,6 @@ var (
 					Required:    true,
 				},
 			},
-		},
-		{
-			Name:        "vpses-loaded",
-			Description: "Check the vpses you have loaded atm!",
 		},
 		{
 			Name:        "add-names",
@@ -382,67 +331,6 @@ var (
 				})
 			}()
 		},
-		"vpses-loaded": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			go func() {
-				var id string
-				if i.Member == nil {
-					id = i.User.ID
-				} else {
-					id = i.Member.User.ID
-				}
-
-				if id != acc.DiscordID {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Embeds: []*discordgo.MessageEmbed{
-								{
-									Author:      &discordgo.MessageEmbedAuthor{},
-									Color:       000000, // Green
-									Description: "```You are not authorized to use this Bot.```",
-									Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-									Title:       "MCSN Errors",
-								},
-							},
-						},
-					})
-					return
-				}
-
-				if acc.Vps == nil || len(acc.Vps) == 0 {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Embeds: []*discordgo.MessageEmbed{
-								{
-									Author:      &discordgo.MessageEmbedAuthor{},
-									Color:       000000, // Green
-									Description: "```You have no vpses loaded, please add some.```",
-									Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-									Title:       "MCSN Errors",
-								},
-							},
-						},
-					})
-					return
-				}
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Author:      &discordgo.MessageEmbedAuthor{},
-								Color:       000000, // Green
-								Description: fmt.Sprintf("```Vpses: %v```", acc.Vps),
-								Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-								Title:       "MCSN Logs",
-							},
-						},
-					},
-				})
-			}()
-		},
 		"create-task": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			go func() {
 				var id string
@@ -471,35 +359,69 @@ var (
 					return
 				}
 
-				if !strings.ContainsAny(i.ApplicationCommandData().Options[1].StringValue(), "3n 3c list 3l") {
-					acc.Task = append(acc.Task, Task{
-						Name: i.ApplicationCommandData().Options[1].StringValue(),
-						Type: "singlename",
-						Unix: DropTime(i.ApplicationCommandData().Options[1].StringValue()),
-					})
+				dropTime := DropTime(i.ApplicationCommandData().Options[1].StringValue())
+
+				if dropTime != 0 {
+					if !strings.Contains(i.ApplicationCommandData().Options[1].StringValue(), "3n") && !strings.Contains(i.ApplicationCommandData().Options[1].StringValue(), "3c") && !strings.Contains(i.ApplicationCommandData().Options[1].StringValue(), "3l") && !strings.Contains(i.ApplicationCommandData().Options[1].StringValue(), "list") {
+						acc.Task = append(acc.Task, Task{
+							Name:  i.ApplicationCommandData().Options[1].StringValue(),
+							Type:  "singlename",
+							Unix:  dropTime,
+							Delay: i.ApplicationCommandData().Options[0].IntValue(),
+						})
+
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Embeds: []*discordgo.MessageEmbed{
+									{
+										Author:      &discordgo.MessageEmbedAuthor{},
+										Color:       000000, // Green
+										Description: fmt.Sprintf("```Succesfully created your task: %v ~ %v```", i.ApplicationCommandData().Options[1].StringValue(), time.Unix(dropTime, 0).Local().Format("2006-01-02 15:04:05")),
+										Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+										Title:       "MCSN Logs",
+									},
+								},
+							},
+						})
+					} else {
+						acc.Task = append(acc.Task, Task{
+							Type: i.ApplicationCommandData().Options[1].StringValue(),
+						})
+
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Embeds: []*discordgo.MessageEmbed{
+									{
+										Author:      &discordgo.MessageEmbedAuthor{},
+										Color:       000000, // Green
+										Description: fmt.Sprintf("```Succesfully created your task: %v```", i.ApplicationCommandData().Options[1].StringValue()),
+										Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+										Title:       "MCSN Logs",
+									},
+								},
+							},
+						})
+					}
+					acc.SaveConfig()
+					acc.LoadState()
 				} else {
-					acc.Task = append(acc.Task, Task{
-						Type: i.ApplicationCommandData().Options[1].StringValue(),
-					})
-				}
-
-				acc.SaveConfig()
-				acc.LoadState()
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Author:      &discordgo.MessageEmbedAuthor{},
-								Color:       000000, // Green
-								Description: "```Succesfully created your task.```",
-								Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-								Title:       "MCSN Logs",
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Embeds: []*discordgo.MessageEmbed{
+								{
+									Author:      &discordgo.MessageEmbedAuthor{},
+									Color:       000000, // Green
+									Description: fmt.Sprintf("```Unable to find droptime for task: %v```", i.ApplicationCommandData().Options[1].StringValue()),
+									Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+									Title:       "MCSN Errors",
+								},
 							},
 						},
-					},
-				})
+					})
+				}
 			}()
 		},
 		"add-names": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -635,7 +557,7 @@ func TaskThread() {
 				var conns []*godo.Droplet
 				if acc.Digital != "" {
 					for i := 0; i < len(acc.Task); {
-						newDroplet, _, err := client.Droplets.Create(context.TODO(), &godo.DropletCreateRequest{
+						newDroplet, res, err := client.Droplets.Create(context.TODO(), &godo.DropletCreateRequest{
 							Name:   "super-cool-droplet",
 							Region: "nyc3",
 							Size:   "s-1vcpu-1gb",
@@ -649,22 +571,31 @@ func TaskThread() {
 								},
 							},
 						})
-						if err != nil {
+
+						if res.StatusCode == 429 {
 							sendEmbed(&discordgo.MessageEmbed{
 								Author:      &discordgo.MessageEmbedAuthor{},
 								Color:       000000, // Green
-								Description: "```Failed to build a VPS, continuing.```",
+								Description: "```Rate limited sleeping for a minute.```",
 								Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-								Title:       "MCSN Errors",
+								Title:       "MCSN Timers",
 							}, acc.DiscordID)
-						}
 
-						fmt.Println(newDroplet)
-						ip, _ := newDroplet.PublicIPv6()
-
-						if AddVps(ip, "22", "root") {
-							conns = append(conns, newDroplet)
+							time.Sleep(time.Minute)
+						} else {
+							if err != nil {
+								sendEmbed(&discordgo.MessageEmbed{
+									Author:      &discordgo.MessageEmbedAuthor{},
+									Color:       000000, // Green
+									Description: "```Failed to build a VPS, continuing.```",
+									Timestamp:   time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+									Title:       "MCSN Errors",
+								}, acc.DiscordID)
+							} else {
+								conns = append(conns, newDroplet)
+							}
 						}
+						i++
 					}
 				}
 
@@ -681,38 +612,49 @@ func TaskThread() {
 						if task.Unix-time.Now().Unix() < 60 {
 							break
 						}
+						time.Sleep(1 * time.Second)
 					}
 
-					var outputlist = make(map[string][][]Bearers)
-					var meow int = 0
-					var amount int
+					var meow []*godo.Droplet
+					for _, conn := range conns {
+						drop, _, _ := client.Droplets.Get(context.TODO(), conn.ID)
+						meow = append(meow, drop)
+					}
 
-					for _, inp := range acc.Bearers {
-						if inp.Type == "Giftcard" {
-							amount = 5
-						} else {
-							amount = 1
+					conns = meow
+
+					var Listofstring [][]Bearers
+					for i := 0; i < 5; i++ {
+						Listofstring = append(Listofstring, []Bearers{})
+					}
+
+					for _, nums := range acc.Bearers {
+						Listofstring[accNum] = append(Listofstring[accNum], nums)
+						accNum++
+						if accNum == len(Listofstring) {
+							increase++
+							accNum = 0
 						}
+					}
 
-						if len(outputlist[inp.Type]) == 0 {
-							outputlist[inp.Type] = append(outputlist[inp.Type], []Bearers{inp})
+					for i, conn := range conns {
+						if i >= len(conns) {
+							break
 						} else {
-							if len(outputlist[inp.Type][meow]) < amount {
-								outputlist[inp.Type][meow] = append(outputlist[inp.Type][meow], inp)
-							} else {
-								meow++
-								outputlist[inp.Type] = append(outputlist[inp.Type], []Bearers{inp})
+							ip, _ := conn.PublicIPv4()
+
+							if AddVps(ip, "22", "root", Listofstring[i], task) {
+								sendEmbed(&discordgo.MessageEmbed{
+									Author:      &discordgo.MessageEmbedAuthor{},
+									Color:       000000, // Green
+									Description: fmt.Sprintf("```Started task %v on IP: %v```", task.Name, ip),
+									Timestamp:   time.Now().Format(time.RFC3339),
+									Title:       "MCSN Logs",
+								}, acc.DiscordID)
 							}
+
+							time.Sleep(1 * time.Second)
 						}
-					}
-
-					var outputs []Output
-					for i, outp := range outputlist {
-						outputs = append(outputs, Output{Group: i, Accounts: outp})
-					}
-
-					for _, info := range outputs {
-						fmt.Println(info.Accounts)
 					}
 				}
 
@@ -727,16 +669,109 @@ func TaskThread() {
 				acc.SaveConfig()
 				acc.LoadState()
 
-				for _, conn := range conns {
-					client.Droplets.Delete(context.TODO(), conn.ID)
-				}
+				go func() {
+					time.Sleep(time.Until(time.Unix(task.Unix, 0).Add(10 * time.Second)))
+
+					var leg int = len(conns)
+					for _, conn := range conns {
+						client.Droplets.Delete(context.TODO(), conn.ID)
+					}
+
+					conns = []*godo.Droplet{}
+
+					sendEmbed(&discordgo.MessageEmbed{
+						Author:      &discordgo.MessageEmbedAuthor{},
+						Color:       000000, // Green
+						Description: fmt.Sprintf("```Deleted %v vpses succesfully : New length of conns %v```", leg, len(conns)),
+						Timestamp:   time.Now().Format(time.RFC3339),
+						Title:       "MCSN Logs",
+					}, acc.DiscordID)
+				}()
 			}
 		}
 	}
 }
 
-func AddVps(ip, port, user string) bool {
-	signer, _ := signerFromPem(privateKeyBytes, content)
+func StartDigital() {
+	client = godo.NewFromToken(acc.Digital)
+
+	_, err := os.Stat("ssh")
+	if os.IsNotExist(err) {
+		os.Mkdir("ssh", 0755)
+
+		privateKey, err := generatePrivateKey(4096)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		privateKeyBytess := encodePrivateKeyToPEM(privateKey)
+
+		err = writeKeyToFile(privateKeyBytess, "./ssh/privatekey")
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		err = writeKeyToFile([]byte(publicKeyBytes), "./ssh/publickey.pub")
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		content, _ = ioutil.ReadFile("/ssh/publickey.pub")
+		privateKeyBytes, _ = ioutil.ReadFile("./ssh/privatekey")
+		Keys, _, err := client.Keys.List(context.TODO(), &godo.ListOptions{
+			Page:    1,
+			PerPage: 1,
+		})
+		if err != nil {
+			sendE("Error: " + err.Error())
+		} else {
+			if len(Keys) == 0 {
+				Key, _, err = client.Keys.Create(context.TODO(), &godo.KeyCreateRequest{
+					Name:      "key",
+					PublicKey: string(content),
+				})
+				if err != nil {
+					sendE("Error: " + err.Error())
+				}
+			} else {
+				Key = &Keys[0]
+			}
+		}
+	} else {
+		content, _ = ioutil.ReadFile("./ssh/publickey.pub")
+		privateKeyBytes, _ = ioutil.ReadFile("./ssh/privatekey")
+		Keys, _, err := client.Keys.List(context.TODO(), &godo.ListOptions{
+			Page:    1,
+			PerPage: 1,
+		})
+		if err != nil {
+			sendE("Error: " + err.Error())
+		} else {
+			if len(Keys) == 0 {
+				Key, _, err = client.Keys.Create(context.TODO(), &godo.KeyCreateRequest{
+					Name:      "key",
+					PublicKey: string(content),
+				})
+				if err != nil {
+					sendE("Error: " + err.Error())
+				}
+			} else {
+				Key = &Keys[0]
+			}
+		}
+	}
+}
+
+func AddVps(ip, port, user string, Output []Bearers, task Task) bool {
+	signer, err := signerFromPem(privateKeyBytes, content)
+	if err != nil {
+		log.Fatalf("unable to parse private key: %v", err)
+	}
 	conn, err := ssh.Dial("tcp", ip+":"+port, &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            user,
@@ -744,42 +779,64 @@ func AddVps(ip, port, user string) bool {
 			ssh.PublicKeys(signer),
 		},
 	})
+
 	if err != nil {
-		sendE("Error: " + err.Error())
+		sendEmbed(&discordgo.MessageEmbed{
+			Author:      &discordgo.MessageEmbedAuthor{},
+			Color:       000000, // Green
+			Description: fmt.Sprintf("```Error on %v: %v```", ip, err.Error()),
+			Timestamp:   time.Now().Format(time.RFC3339),
+			Title:       "MCSN Errors",
+		}, acc.DiscordID)
 	} else {
 		session, _ := sftp.NewClient(conn)
 		defer session.Close()
 
-		file, _ := os.Open("sniper")
-
-		dstFile, err := session.Create("/root/snipe")
+		file, err := os.Open("./botsniper/sniper")
 		if err != nil {
-			sendE("Error: " + err.Error())
+			sendEmbed(&discordgo.MessageEmbed{
+				Author:      &discordgo.MessageEmbedAuthor{},
+				Color:       000000, // Green
+				Description: fmt.Sprintf("```Error on %v: %v```", ip, err.Error()),
+				Timestamp:   time.Now().Format(time.RFC3339),
+				Title:       "MCSN Errors",
+			}, acc.DiscordID)
 		} else {
-			if _, err := dstFile.ReadFrom(file); err == nil {
-				acc.Vps = append(acc.Vps, Vps{
-					IP:   ip,
-					Port: port,
-					User: user,
-				})
+			dstFile, err := session.Create("/root/snipe")
+			if err != nil {
+				sendEmbed(&discordgo.MessageEmbed{
+					Author:      &discordgo.MessageEmbedAuthor{},
+					Color:       000000, // Green
+					Description: fmt.Sprintf("```Error on %v: %v```", ip, err.Error()),
+					Timestamp:   time.Now().Format(time.RFC3339),
+					Title:       "MCSN Errors",
+				}, acc.DiscordID)
+			} else {
+				if _, err := dstFile.ReadFrom(file); err == nil {
+					sesh, _ := conn.NewSession()
+					defer sesh.Close()
+
+					var stdoutBuf bytes.Buffer
+					sesh.Stdout = &stdoutBuf
+
+					Listofstr, _ := json.Marshal(Output)
+
+					err := sesh.Run(fmt.Sprintf("git clone https://github.com/Liza-Developer/mcsn\ncd mcsn\ncd botsniper\nchmod +x ./sniper\ntmux ./sniper snipe -j %v -d %v -k %v -n %v -delay %v", string(Listofstr), acc.DiscordID, acc.DiscordBotToken, task.Name, task.Delay))
+					if err != nil {
+						sendEmbed(&discordgo.MessageEmbed{
+							Author:      &discordgo.MessageEmbedAuthor{},
+							Color:       000000, // Green
+							Description: fmt.Sprintf("```Error on %v: %v```", ip, err.Error()),
+							Timestamp:   time.Now().Format(time.RFC3339),
+							Title:       "MCSN Errors",
+						}, acc.DiscordID)
+					}
+				}
 			}
-
-			acc.SaveConfig()
-			acc.LoadState()
-
-			sesh, _ := conn.NewSession()
-			defer sesh.Close()
-
-			var stdoutBuf bytes.Buffer
-			sesh.Stdout = &stdoutBuf
-			sesh.Run("chmod +x ./snipe\n")
+			defer dstFile.Close()
 		}
-
-		dstFile.Close()
-
 		return true
 	}
-
 	return false
 }
 
