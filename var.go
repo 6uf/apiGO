@@ -591,6 +591,8 @@ func TaskThread() {
 							Region:     "nyc1",
 						})
 
+						fmt.Println(res)
+
 						if AddVps(res.MainIP, "22", res.DefaultPassword, "root") {
 							conns = append(conns, res)
 						}

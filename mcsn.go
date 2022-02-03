@@ -176,13 +176,6 @@ func sendS(content string) {
 	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("SUCCESS")))
 }
 
-func sendW(content string) string {
-	var value string
-	fmt.Print(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Yellow("WAIT")))
-	fmt.Scan(&value)
-	return value
-}
-
 func sendT(content string) {
 	fmt.Print(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("TIMER")))
 }
@@ -398,20 +391,14 @@ func Bot() {
 			sendE("Cannot open the session: " + err.Error())
 		}
 
-		for _, command := range commands {
-			s.ApplicationCommandCreate(s.State.User.ID, "", command)
-		}
-
-		defer s.Close()
+		s.ApplicationCommandBulkOverwrite(s.State.User.ID, "", commands)
 	} else {
 		sendE("Unable to start the bot, please add a discord bot token to your config.")
 	}
 
-	sendW("Press CTRL+C to Continue : ")
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 	<-stop
-	fmt.Println()
 	sendI("Gracefully shutdowning")
 }
 
