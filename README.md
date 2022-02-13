@@ -1,3 +1,7 @@
+# Alert
+
+Tutorial is outdated, i will be making a updated one soon.
+
 # Introduction
 
 A library for Minecraft's name change api, this utilizes sockets and supports MSAUTH.
