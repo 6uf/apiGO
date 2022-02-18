@@ -70,6 +70,7 @@ type Info struct {
 	AccountType string
 	Email       string
 	Password    string
+	Requests    int
 }
 
 type Config struct {

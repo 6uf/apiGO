@@ -22,8 +22,7 @@ import (
 )
 
 func (accountBearer MCbearers) CreatePayloads(name string) Payload {
-	payload := make([]string, 0)
-	var conns []*tls.Conn
+	var payload []string
 
 	for _, bearer := range accountBearer.Details {
 		if bearer.AccountType == "Giftcard" {
@@ -33,36 +32,15 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 		}
 	}
 
-	for range payload {
-		conn, _ := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
-		conns = append(conns, conn)
-	}
-
-	return Payload{Payload: payload, Conns: conns}
+	return Payload{Payload: payload}
 }
 
 func Sleep(dropTime int64, delay float64) {
 	dropStamp := time.Unix(dropTime, 0)
 
-	sendI("Preparing to snipe..")
+	sendI(fmt.Sprintf("Sleeping until: %v", dropStamp.Format("15:04:05")))
 
 	time.Sleep(time.Until(dropStamp.Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
-}
-
-func PreSleep(dropTime int64) {
-	dropStamp := time.Unix(dropTime, 0)
-
-	delDroptime := dropStamp.Add(-time.Second * 5)
-
-	for {
-		sendT(fmt.Sprintf("Dropping in %v    \r", time.Until(delDroptime).Round(time.Second).Seconds()))
-		time.Sleep(time.Second * 1)
-		if time.Until(dropStamp) <= 5*time.Second {
-			break
-		}
-	}
-
-	fmt.Println()
 }
 
 func DropTime(name string) int64 {
