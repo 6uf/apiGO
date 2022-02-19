@@ -143,156 +143,6 @@ func Auth(accounts []string) MCbearers {
 		email := strings.Split(infos, ":")[0]
 		password := strings.Split(infos, ":")[1]
 
-		if i == 3 {
-			dropStamp := time.Unix(time.Now().Add(time.Minute).Unix(), 0)
-			for {
-				time.Sleep(time.Second * 1)
-
-				if time.Until(dropStamp) <= 0*time.Second {
-					break
-				}
-			}
-			fmt.Println()
-			i = 0
-		}
-
-		time.Sleep(time.Second)
-		jar, _ := cookiejar.New(nil)
-
-		client := &http.Client{
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				redirect = req.URL.String()
-				return nil
-			},
-			Jar: jar,
-		}
-
-		resp, _ := http.NewRequest("GET", "https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en", nil)
-
-		resp.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
-
-		response, _ := client.Do(resp)
-
-		jar.Cookies(resp.URL)
-		bodyByte, _ := ioutil.ReadAll(response.Body)
-		myString := string(bodyByte[:])
-
-		search1 := regexp.MustCompile(`value="(.*?)"`)
-		search3 := regexp.MustCompile(`urlPost:'(.+?)'`)
-
-		value := search1.FindAllStringSubmatch(myString, -1)[0][1]
-		urlPost := search3.FindAllStringSubmatch(myString, -1)[0][1]
-
-		emailEncode := url.QueryEscape(email)
-		passwordEncode := url.QueryEscape(password)
-
-		body := []byte(fmt.Sprintf("login=%v&loginfmt=%v&passwd=%v&PPFT=%v", emailEncode, emailEncode, passwordEncode, value))
-
-		req, _ := http.NewRequest("POST", urlPost, bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
-		client.Do(req)
-
-		respBytes, _ := ioutil.ReadAll(response.Body)
-
-		if strings.Contains(string(respBytes), "Sign in to") {
-			returnDetails.Details = append(returnDetails.Details, Info{
-				Email:    email,
-				Password: password,
-				Error:    "Incorrect Password",
-			})
-		} else if strings.Contains(string(respBytes), "Help us protect your account") {
-			returnDetails.Details = append(returnDetails.Details, Info{
-				Email:    email,
-				Password: password,
-				Error:    "Account has security questions",
-			})
-		} else if !strings.Contains(redirect, "access_token") || redirect == urlPost {
-			returnDetails.Details = append(returnDetails.Details, Info{
-				Email:    email,
-				Password: password,
-				Error:    "Incorrect Password",
-			})
-		} else {
-			client := &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						Renegotiation: tls.RenegotiateFreelyAsClient,
-					},
-				},
-			}
-
-			splitBear := strings.Split(redirect, "#")[1]
-			splitValues := strings.Split(splitBear, "&")
-
-			//refresh_token := strings.Split(splitValues[4], "=")[1]
-			access_token := strings.Split(splitValues[0], "=")[1]
-			//expires_in := strings.Split(splitValues[2], "=")[1]
-
-			body := []byte(`{"Properties": {"AuthMethod": "RPS", "SiteName": "user.auth.xboxlive.com", "RpsTicket": "` + access_token + `"}, "RelyingParty": "http://auth.xboxlive.com", "TokenType": "JWT"}`)
-			post, _ := http.NewRequest("POST", "https://user.auth.xboxlive.com/user/authenticate", bytes.NewBuffer(body))
-
-			post.Header.Set("Content-Type", "application/json")
-			post.Header.Set("Accept", "application/json")
-
-			bodyRP, _ := client.Do(post)
-
-			rpBody, _ := ioutil.ReadAll(bodyRP.Body)
-
-			Token := grabTokens(string(rpBody), "Token")
-			uhs := grabTokens(string(rpBody), "uhs")
-
-			payload := []byte(`{"Properties": {"SandboxId": "RETAIL", "UserTokens": ["` + Token + `"]}, "RelyingParty": "rp://api.minecraftservices.com/", "TokenType": "JWT"}`)
-			xstsPost, _ := http.NewRequest("POST", "https://xsts.auth.xboxlive.com/xsts/authorize", bytes.NewBuffer(payload))
-			xstsPost.Header.Set("Content-Type", "application/json")
-			xstsPost.Header.Set("Accept", "application/json")
-
-			bodyXS, _ := client.Do(xstsPost)
-			xsBody, _ := ioutil.ReadAll(bodyXS.Body)
-
-			switch bodyXS.StatusCode {
-			case 401:
-				switch !strings.Contains(string(xsBody), "XErr") {
-				case !strings.Contains(string(xsBody), "2148916238"):
-					returnDetails.Details = append(returnDetails.Details, Info{
-						Email:    email,
-						Password: password,
-						Error:    "Account belongs to someone under 18 and needs to be added to a family",
-					})
-					continue
-				case !strings.Contains(string(xsBody), "2148916233"):
-					returnDetails.Details = append(returnDetails.Details, Info{
-						Email:    email,
-						Password: password,
-						Error:    "Account has no Xbox account, you must sign up for one first",
-					})
-					continue
-				}
-			}
-
-			xsToken := grabTokens(string(xsBody), "Token")
-			mcBearer := []byte(`{"identityToken" : "XBL3.0 x=` + uhs + `;` + xsToken + `", "ensureLegacyEnabled" : true}`)
-			mcBPOST, _ := http.NewRequest("POST", "https://api.minecraftservices.com/authentication/login_with_xbox", bytes.NewBuffer(mcBearer))
-			mcBPOST.Header.Set("Content-Type", "application/json")
-
-			bodyBearer, _ := client.Do(mcBPOST)
-			bearerValue, _ := ioutil.ReadAll(bodyBearer.Body)
-
-			var bearerMS bearerMs
-			json.Unmarshal(bearerValue, &bearerMS)
-
-			returnDetails.Details = append(returnDetails.Details, Info{
-				Bearer:      bearerMS.Bearer,
-				Email:       email,
-				Password:    password,
-				AccountType: accountInfo(bearerMS.Bearer),
-				Error:       "",
-			})
-
-			i++
-			continue
-		}
-
 		bearer, account := Mojang(email, password, infos, g)
 		if bearer != "" {
 			returnDetails.Details = append(returnDetails.Details, Info{
@@ -302,15 +152,159 @@ func Auth(accounts []string) MCbearers {
 				AccountType: account,
 				Error:       "",
 			})
-		} else {
-			returnDetails.Details = append(returnDetails.Details, Info{
-				Email:    email,
-				Password: password,
-				Error:    "Unable to log into your mojang account, possibly incorrect password.",
-			})
-		}
 
-		g++
+			g++
+		} else {
+			if i == 3 {
+				dropStamp := time.Unix(time.Now().Add(time.Minute).Unix(), 0)
+				for {
+					time.Sleep(time.Second * 1)
+
+					if time.Until(dropStamp) <= 0*time.Second {
+						break
+					}
+				}
+				fmt.Println()
+				i = 0
+			}
+
+			time.Sleep(time.Second)
+			jar, _ := cookiejar.New(nil)
+
+			client := &http.Client{
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					redirect = req.URL.String()
+					return nil
+				},
+				Jar: jar,
+			}
+
+			resp, _ := http.NewRequest("GET", "https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en", nil)
+
+			resp.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+
+			response, _ := client.Do(resp)
+
+			jar.Cookies(resp.URL)
+			bodyByte, _ := ioutil.ReadAll(response.Body)
+			myString := string(bodyByte[:])
+
+			search1 := regexp.MustCompile(`value="(.*?)"`)
+			search3 := regexp.MustCompile(`urlPost:'(.+?)'`)
+
+			value := search1.FindAllStringSubmatch(myString, -1)[0][1]
+			urlPost := search3.FindAllStringSubmatch(myString, -1)[0][1]
+
+			emailEncode := url.QueryEscape(email)
+			passwordEncode := url.QueryEscape(password)
+
+			body := []byte(fmt.Sprintf("login=%v&loginfmt=%v&passwd=%v&PPFT=%v", emailEncode, emailEncode, passwordEncode, value))
+
+			req, _ := http.NewRequest("POST", urlPost, bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+			client.Do(req)
+
+			respBytes, _ := ioutil.ReadAll(response.Body)
+
+			if strings.Contains(string(respBytes), "Sign in to") {
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Email:    email,
+					Password: password,
+					Error:    "Incorrect Password",
+				})
+			} else if strings.Contains(string(respBytes), "Help us protect your account") {
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Email:    email,
+					Password: password,
+					Error:    "Account has security questions",
+				})
+			} else if !strings.Contains(redirect, "access_token") || redirect == urlPost {
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Email:    email,
+					Password: password,
+					Error:    "Incorrect Password",
+				})
+			} else {
+				client := &http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							Renegotiation: tls.RenegotiateFreelyAsClient,
+						},
+					},
+				}
+
+				splitBear := strings.Split(redirect, "#")[1]
+				splitValues := strings.Split(splitBear, "&")
+
+				//refresh_token := strings.Split(splitValues[4], "=")[1]
+				access_token := strings.Split(splitValues[0], "=")[1]
+				//expires_in := strings.Split(splitValues[2], "=")[1]
+
+				body := []byte(`{"Properties": {"AuthMethod": "RPS", "SiteName": "user.auth.xboxlive.com", "RpsTicket": "` + access_token + `"}, "RelyingParty": "http://auth.xboxlive.com", "TokenType": "JWT"}`)
+				post, _ := http.NewRequest("POST", "https://user.auth.xboxlive.com/user/authenticate", bytes.NewBuffer(body))
+
+				post.Header.Set("Content-Type", "application/json")
+				post.Header.Set("Accept", "application/json")
+
+				bodyRP, _ := client.Do(post)
+
+				rpBody, _ := ioutil.ReadAll(bodyRP.Body)
+
+				Token := grabTokens(string(rpBody), "Token")
+				uhs := grabTokens(string(rpBody), "uhs")
+
+				payload := []byte(`{"Properties": {"SandboxId": "RETAIL", "UserTokens": ["` + Token + `"]}, "RelyingParty": "rp://api.minecraftservices.com/", "TokenType": "JWT"}`)
+				xstsPost, _ := http.NewRequest("POST", "https://xsts.auth.xboxlive.com/xsts/authorize", bytes.NewBuffer(payload))
+				xstsPost.Header.Set("Content-Type", "application/json")
+				xstsPost.Header.Set("Accept", "application/json")
+
+				bodyXS, _ := client.Do(xstsPost)
+				xsBody, _ := ioutil.ReadAll(bodyXS.Body)
+
+				switch bodyXS.StatusCode {
+				case 401:
+					switch !strings.Contains(string(xsBody), "XErr") {
+					case !strings.Contains(string(xsBody), "2148916238"):
+						returnDetails.Details = append(returnDetails.Details, Info{
+							Email:    email,
+							Password: password,
+							Error:    "Account belongs to someone under 18 and needs to be added to a family",
+						})
+						continue
+					case !strings.Contains(string(xsBody), "2148916233"):
+						returnDetails.Details = append(returnDetails.Details, Info{
+							Email:    email,
+							Password: password,
+							Error:    "Account has no Xbox account, you must sign up for one first",
+						})
+						continue
+					}
+				}
+
+				xsToken := grabTokens(string(xsBody), "Token")
+				mcBearer := []byte(`{"identityToken" : "XBL3.0 x=` + uhs + `;` + xsToken + `", "ensureLegacyEnabled" : true}`)
+				mcBPOST, _ := http.NewRequest("POST", "https://api.minecraftservices.com/authentication/login_with_xbox", bytes.NewBuffer(mcBearer))
+				mcBPOST.Header.Set("Content-Type", "application/json")
+
+				bodyBearer, _ := client.Do(mcBPOST)
+				bearerValue, _ := ioutil.ReadAll(bodyBearer.Body)
+
+				var bearerMS bearerMs
+				json.Unmarshal(bearerValue, &bearerMS)
+
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Bearer:      bearerMS.Bearer,
+					Email:       email,
+					Password:    password,
+					AccountType: accountInfo(bearerMS.Bearer),
+					Error:       "",
+				})
+
+				i++
+				continue
+			}
+		}
 	}
 
 	return returnDetails
