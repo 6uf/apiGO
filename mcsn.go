@@ -396,7 +396,7 @@ func Mojang(email, password, security string, increment int) (string, string) {
 			if len(strings.Split(security, ":")) == 5 {
 				req, _ := http.NewRequest("GET", "https://api.mojang.com/user/security/challenges", nil)
 
-				req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
+				req.Header.Set("Authorization", "Bearer "+access.AccessToken)
 				res, _ = http.DefaultClient.Do(req)
 
 				respData, _ = ioutil.ReadAll(res.Body)
@@ -408,7 +408,7 @@ func Mojang(email, password, security string, increment int) (string, string) {
 					dataBytes := []byte(`[{"id": ` + strconv.Itoa(security[0].Answer.ID) + `, "answer": "` + splitLogin[2] + `"}, {"id": ` + strconv.Itoa(security[1].Answer.ID) + `, "answer": "` + splitLogin[3] + `"}, {"id": ` + strconv.Itoa(security[2].Answer.ID) + `, "answer": "` + splitLogin[4] + `"}]`)
 					req, _ := http.NewRequest("POST", "https://api.mojang.com/user/security/location", bytes.NewReader(dataBytes))
 
-					req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
+					req.Header.Set("Authorization", "Bearer "+access.AccessToken)
 					resps, _ := http.DefaultClient.Do(req)
 					if resps.StatusCode == 204 {
 						increment++
@@ -420,7 +420,7 @@ func Mojang(email, password, security string, increment int) (string, string) {
 		}
 	}
 
-	return *access.AccessToken, "Microsoft"
+	return access.AccessToken, "Microsoft"
 }
 
 func (s *Config) ToJson() []byte {

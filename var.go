@@ -47,7 +47,7 @@ type accessTokenReq struct {
 }
 
 type accessTokenResp struct {
-	AccessToken *string `json:"accessToken"`
+	AccessToken string `json:"accessToken"`
 }
 
 type MCbearers struct {
