@@ -2,27 +2,16 @@ package apiGO
 
 import (
 	"bufio"
-	"bytes"
-	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
-	"encoding/pem"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/digitalocean/godo"
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 )
 
 func init() {
@@ -71,6 +60,7 @@ type Info struct {
 	Email       string
 	Password    string
 	Requests    int
+	Error       string
 }
 
 type Config struct {
@@ -541,6 +531,7 @@ var (
 	}
 )
 
+/*
 func TaskThread() {
 	for {
 		time.Sleep(time.Second * 10)
@@ -729,6 +720,7 @@ func StartDigital() {
 			PerPage: 1,
 		})
 		if err != nil {
+			fmt.println()
 			sendE("Error: " + err.Error())
 		} else {
 			if len(Keys) == 0 {
@@ -953,3 +945,5 @@ func parsePemBlock(block *pem.Block) (interface{}, error) {
 		return nil, fmt.Errorf("Parsing private key failed, unsupported key type %q", block.Type)
 	}
 }
+
+*/

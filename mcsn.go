@@ -6,19 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/logrusorgru/aurora/v3"
 )
 
 func (accountBearer MCbearers) CreatePayloads(name string) Payload {
@@ -36,11 +31,7 @@ func (accountBearer MCbearers) CreatePayloads(name string) Payload {
 }
 
 func Sleep(dropTime int64, delay float64) {
-	dropStamp := time.Unix(dropTime, 0)
-
-	sendI(fmt.Sprintf("Sleeping until: %v", dropStamp.Format("15:04:05")))
-
-	time.Sleep(time.Until(dropStamp.Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
+	time.Sleep(time.Until(time.Unix(dropTime, 0).Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
 }
 
 func DropTime(name string) int64 {
@@ -142,22 +133,6 @@ func (server ServerInfo) ChangeSkin(body []byte, bearer string) (*http.Response,
 	return skin, nil
 }
 
-func sendE(content string) {
-	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Bold(aurora.Red("ERROR"))))
-}
-
-func sendI(content string) {
-	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Yellow("INFO")))
-}
-
-func sendS(content string) {
-	fmt.Println(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("SUCCESS")))
-}
-
-func sendT(content string) {
-	fmt.Print(aurora.Sprintf(aurora.White("[%v] "+content), aurora.Green("TIMER")))
-}
-
 func Auth(accounts []string) MCbearers {
 	var returnDetails MCbearers
 	var i int
@@ -171,7 +146,6 @@ func Auth(accounts []string) MCbearers {
 		if i == 3 {
 			dropStamp := time.Unix(time.Now().Add(time.Minute).Unix(), 0)
 			for {
-				sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
 				time.Sleep(time.Second * 1)
 
 				if time.Until(dropStamp) <= 0*time.Second {
@@ -222,11 +196,23 @@ func Auth(accounts []string) MCbearers {
 		respBytes, _ := ioutil.ReadAll(response.Body)
 
 		if strings.Contains(string(respBytes), "Sign in to") {
-			sendI(fmt.Sprintf("Couldnt Auth | %v [MICROSOFT]", email))
+			returnDetails.Details = append(returnDetails.Details, Info{
+				Email:    email,
+				Password: password,
+				Error:    "Incorrect Password",
+			})
 		} else if strings.Contains(string(respBytes), "Help us protect your account") {
-			sendI(fmt.Sprintf("Account has security questions | %v", email))
+			returnDetails.Details = append(returnDetails.Details, Info{
+				Email:    email,
+				Password: password,
+				Error:    "Account has security questions",
+			})
 		} else if !strings.Contains(redirect, "access_token") || redirect == urlPost {
-			sendI(fmt.Sprintf("Couldnt Auth | %v [MICROSOFT]", email))
+			returnDetails.Details = append(returnDetails.Details, Info{
+				Email:    email,
+				Password: password,
+				Error:    "Incorrect Password",
+			})
 		} else {
 			client := &http.Client{
 				Transport: &http.Transport{
@@ -268,10 +254,18 @@ func Auth(accounts []string) MCbearers {
 			case 401:
 				switch !strings.Contains(string(xsBody), "XErr") {
 				case !strings.Contains(string(xsBody), "2148916238"):
-					sendI(fmt.Sprintf("Account belongs to someone under 18 and needs to be added to a family | %v", email))
+					returnDetails.Details = append(returnDetails.Details, Info{
+						Email:    email,
+						Password: password,
+						Error:    "Account belongs to someone under 18 and needs to be added to a family",
+					})
 					continue
 				case !strings.Contains(string(xsBody), "2148916233"):
-					sendI(fmt.Sprintf("Account has no Xbox account, you must sign up for one first | %v", email))
+					returnDetails.Details = append(returnDetails.Details, Info{
+						Email:    email,
+						Password: password,
+						Error:    "Account has no Xbox account, you must sign up for one first",
+					})
 					continue
 				}
 			}
@@ -292,14 +286,12 @@ func Auth(accounts []string) MCbearers {
 				Email:       email,
 				Password:    password,
 				AccountType: accountInfo(bearerMS.Bearer),
+				Error:       "",
 			})
 
-			sendS(fmt.Sprintf("Authenticated | %v [MICROSOFT]", email))
 			i++
 			continue
 		}
-
-		sendI(fmt.Sprintf("Attempting Mojang Login | %v", email))
 
 		bearer, account := Mojang(email, password, infos, g)
 		if bearer != "" {
@@ -308,6 +300,13 @@ func Auth(accounts []string) MCbearers {
 				Email:       email,
 				Password:    password,
 				AccountType: account,
+				Error:       "",
+			})
+		} else {
+			returnDetails.Details = append(returnDetails.Details, Info{
+				Email:    email,
+				Password: password,
+				Error:    "Unable to log into your mojang account, possibly incorrect password.",
 			})
 		}
 
@@ -324,54 +323,6 @@ func rewrite(path, accounts string) {
 	defer file.Close()
 
 	file.WriteAt([]byte(accounts), 0)
-}
-
-func sendEmbed(embed *discordgo.MessageEmbed, id string) {
-	go func() {
-		s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {})
-
-		s.Open()
-
-		channel, err := s.UserChannelCreate(id)
-		if err != nil {
-			log.Println("error creating channel:", err)
-			return
-		}
-
-		_, err = s.ChannelMessageSendEmbed(channel.ID, embed)
-		if err != nil {
-			log.Println("error sending DM message:", err)
-			return
-		}
-	}()
-}
-
-func Bot() {
-	var err error
-	if acc.DiscordBotToken != "" {
-		s, err = discordgo.New("Bot " + acc.DiscordBotToken)
-		if err != nil {
-			sendE("Invalid bot parameters: " + err.Error())
-		}
-
-		s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-				h(s, i)
-			}
-		})
-
-		s.Open()
-
-		s.ApplicationCommandBulkOverwrite(s.State.User.ID, "", commands)
-	} else {
-		sendE("Unable to start the bot, please add a discord bot token to your config.")
-		return
-	}
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-	<-stop
-	sendI("Gracefully shutdowning")
 }
 
 func remove(l []string, item string) []string {
@@ -413,7 +364,6 @@ func Mojang(email, password, security string, increment int) (string, string) {
 	if increment == 10 {
 		dropStamp := time.Unix(time.Now().Add(30*time.Second).Unix(), 0)
 		for {
-			sendT(fmt.Sprintf("Continuing in: %v    \r", time.Until(dropStamp).Round(time.Second).Seconds()))
 			time.Sleep(time.Second * 1)
 
 			if time.Until(dropStamp) <= 0*time.Second {
@@ -461,19 +411,12 @@ func Mojang(email, password, security string, increment int) (string, string) {
 					req.Header.Set("Authorization", "Bearer "+*access.AccessToken)
 					resps, _ := http.DefaultClient.Do(req)
 					if resps.StatusCode == 204 {
-						sendS(fmt.Sprintf("Authenticated | %v [MOJANG]", email))
 						increment++
 					} else {
-						sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
 						return "", ""
 					}
 				}
-			} else {
-				sendS(fmt.Sprintf("Authenticated | %v [MOJANG]", email))
 			}
-		} else {
-			sendI(fmt.Sprintf("Couldnt Auth | %v [MOJANG]", email))
-			return "", ""
 		}
 	}
 
@@ -492,7 +435,6 @@ func (config *Config) SaveConfig() {
 func (s *Config) LoadState() {
 	data, err := ReadFile("config.json")
 	if err != nil {
-		sendI("No config file found, loading one.")
 		s.LoadFromFile()
 		s.GcReq = 2
 		s.MFAReq = 2
