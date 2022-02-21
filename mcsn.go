@@ -58,19 +58,16 @@ func Sum(array []float64) (sum float64) {
 	return
 }
 
-func CheckChange(bearer string) (Value bool) {
-	conn, _ := tls.Dial("tcp", "api.minecraftservices.com:443", nil)
-	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+func CheckChange(bearer string) (Value mojangData) {
+	req, _ := http.NewRequest("GET", "https://api.minecraftservices.com/minecraft/profile/namechange", nil)
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	resp, _ := http.DefaultClient.Do(req)
 
-	authbytes := make([]byte, 4096)
-	auth := mojangData{}
+	authbytes, _ := ioutil.ReadAll(resp.Body)
 
-	conn.Read(authbytes)
-	conn.Close()
+	json.Unmarshal(authbytes, &Value)
 
-	json.Unmarshal(authbytes, &auth)
-
-	return auth.NameChange
+	return
 }
 
 func (payloadInfo Payload) SocketSending(conn *tls.Conn, payload string) (sendTime time.Time, recvTime time.Time, status string) {
