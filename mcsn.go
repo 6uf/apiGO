@@ -114,11 +114,13 @@ func (server ServerInfo) ChangeSkin(body []byte, bearer string) (Req *http.Respo
 //access_token := strings.Split(strings.Split(strings.Split(redirect, "#")[1], "&")[0], "=")[1]
 //expires_in := strings.Split(splitValues[2], "=")[1]
 
-func Auth(accounts []string) (returnDetails MCbearers) {
+func Auth(accounts []string) MCbearers {
+	var returnDetails MCbearers
 	var i int
 	var g int
 
 	for _, infos := range accounts {
+
 		email := strings.Split(infos, ":")[0]
 		password := strings.Split(infos, ":")[1]
 
@@ -147,150 +149,140 @@ func Auth(accounts []string) (returnDetails MCbearers) {
 			}
 
 			time.Sleep(time.Second)
-			if jar, err := cookiejar.New(nil); err != nil {
+			jar, _ := cookiejar.New(nil)
+
+			client := &http.Client{
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					redirect = req.URL.String()
+					return nil
+				},
+				Jar: jar,
+			}
+
+			resp, _ := http.NewRequest("GET", "https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en", nil)
+
+			resp.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+
+			response, _ := client.Do(resp)
+
+			jar.Cookies(resp.URL)
+			bodyByte, _ := ioutil.ReadAll(response.Body)
+			myString := string(bodyByte[:])
+
+			search1 := regexp.MustCompile(`value="(.*?)"`)
+			search3 := regexp.MustCompile(`urlPost:'(.+?)'`)
+
+			value := search1.FindAllStringSubmatch(myString, -1)[0][1]
+			urlPost := search3.FindAllStringSubmatch(myString, -1)[0][1]
+
+			emailEncode := url.QueryEscape(email)
+			passwordEncode := url.QueryEscape(password)
+
+			body := []byte(fmt.Sprintf("login=%v&loginfmt=%v&passwd=%v&PPFT=%v", emailEncode, emailEncode, passwordEncode, value))
+
+			req, _ := http.NewRequest("POST", urlPost, bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("User-Agent", "Mozilla/5.0 (XboxReplay; XboxLiveAuth/3.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+			client.Do(req)
+
+			respBytes, _ := ioutil.ReadAll(response.Body)
+
+			if strings.Contains(string(respBytes), "Sign in to") {
 				returnDetails.Details = append(returnDetails.Details, Info{
 					Email:    email,
 					Password: password,
-					Error:    err.Error(),
+					Error:    "Incorrect Password",
+				})
+			} else if strings.Contains(string(respBytes), "Help us protect your account") {
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Email:    email,
+					Password: password,
+					Error:    "Account has security questions",
+				})
+			} else if !strings.Contains(redirect, "access_token") || redirect == urlPost {
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Email:    email,
+					Password: password,
+					Error:    "Incorrect Password",
 				})
 			} else {
 				client := &http.Client{
-					CheckRedirect: func(req *http.Request, via []*http.Request) error {
-						redirect = req.URL.String()
-						return nil
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							Renegotiation: tls.RenegotiateFreelyAsClient,
+						},
 					},
-					Jar: jar,
 				}
 
-				if response, err := client.Get("https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en"); err != nil {
-					returnDetails.Details = append(returnDetails.Details, Info{
-						Email:    email,
-						Password: password,
-						Error:    err.Error(),
-					})
-				} else {
-					jar.Cookies(response.Request.URL)
+				splitBear := strings.Split(redirect, "#")[1]
+				splitValues := strings.Split(splitBear, "&")
 
-					if bodyByte, err := ioutil.ReadAll(response.Body); err != nil {
+				//refresh_token := strings.Split(splitValues[4], "=")[1]
+				access_token := strings.Split(splitValues[0], "=")[1]
+				//expires_in := strings.Split(splitValues[2], "=")[1]
+
+				body := []byte(`{"Properties": {"AuthMethod": "RPS", "SiteName": "user.auth.xboxlive.com", "RpsTicket": "` + access_token + `"}, "RelyingParty": "http://auth.xboxlive.com", "TokenType": "JWT"}`)
+				post, _ := http.NewRequest("POST", "https://user.auth.xboxlive.com/user/authenticate", bytes.NewBuffer(body))
+
+				post.Header.Set("Content-Type", "application/json")
+				post.Header.Set("Accept", "application/json")
+
+				bodyRP, _ := client.Do(post)
+
+				rpBody, _ := ioutil.ReadAll(bodyRP.Body)
+
+				Token := FindData(string(rpBody), "Token")
+				uhs := FindData(string(rpBody), "uhs")
+
+				payload := []byte(`{"Properties": {"SandboxId": "RETAIL", "UserTokens": ["` + Token + `"]}, "RelyingParty": "rp://api.minecraftservices.com/", "TokenType": "JWT"}`)
+				xstsPost, _ := http.NewRequest("POST", "https://xsts.auth.xboxlive.com/xsts/authorize", bytes.NewBuffer(payload))
+				xstsPost.Header.Set("Content-Type", "application/json")
+				xstsPost.Header.Set("Accept", "application/json")
+
+				bodyXS, _ := client.Do(xstsPost)
+				xsBody, _ := ioutil.ReadAll(bodyXS.Body)
+
+				switch bodyXS.StatusCode {
+				case 401:
+					switch !strings.Contains(string(xsBody), "XErr") {
+					case !strings.Contains(string(xsBody), "2148916238"):
 						returnDetails.Details = append(returnDetails.Details, Info{
 							Email:    email,
 							Password: password,
-							Error:    err.Error(),
+							Error:    "Account belongs to someone under 18 and needs to be added to a family",
 						})
-					} else if _, err := client.Post(regexp.MustCompile(`urlPost:'(.+?)'`).FindAllStringSubmatch(string(bodyByte), -1)[0][1], "application/x-www-form-urlencoded", bytes.NewReader([]byte(fmt.Sprintf("login=%v&loginfmt=%v&passwd=%v&PPFT=%v", url.QueryEscape(email), url.QueryEscape(email), url.QueryEscape(password), regexp.MustCompile(`value="(.*?)"`).FindAllStringSubmatch(string(bodyByte[:]), -1)[0][1])))); err != nil {
+						continue
+					case !strings.Contains(string(xsBody), "2148916233"):
 						returnDetails.Details = append(returnDetails.Details, Info{
 							Email:    email,
 							Password: password,
-							Error:    err.Error(),
+							Error:    "Account has no Xbox account, you must sign up for one first",
 						})
-					} else if respBytes, err := ioutil.ReadAll(response.Body); err != nil {
-						returnDetails.Details = append(returnDetails.Details, Info{
-							Email:    email,
-							Password: password,
-							Error:    err.Error(),
-						})
-					} else {
-						if strings.Contains(string(respBytes), "Sign in to") {
-							returnDetails.Details = append(returnDetails.Details, Info{
-								Email:    email,
-								Password: password,
-								Error:    "Incorrect Password",
-							})
-						} else if strings.Contains(string(respBytes), "Help us protect your account") {
-							returnDetails.Details = append(returnDetails.Details, Info{
-								Email:    email,
-								Password: password,
-								Error:    "Account has security questions",
-							})
-						} else if !strings.Contains(redirect, "access_token") || redirect == regexp.MustCompile(`urlPost:'(.+?)'`).FindAllStringSubmatch(string(bodyByte), -1)[0][1] {
-							returnDetails.Details = append(returnDetails.Details, Info{
-								Email:    email,
-								Password: password,
-								Error:    "Incorrect Password",
-							})
-						} else {
-							client := &http.Client{
-								Transport: &http.Transport{
-									TLSClientConfig: &tls.Config{
-										Renegotiation: tls.RenegotiateFreelyAsClient,
-									},
-								},
-							}
-
-							if bodyRP, err := client.Post("https://user.auth.xboxlive.com/user/authenticate", "application/json", bytes.NewBuffer([]byte(`{"Properties": {"AuthMethod": "RPS", "SiteName": "user.auth.xboxlive.com", "RpsTicket": "`+strings.Split(strings.Split(strings.Split(redirect, "#")[1], "&")[0], "=")[1]+`"}, "RelyingParty": "http://auth.xboxlive.com", "TokenType": "JWT"}`))); err != nil {
-								returnDetails.Details = append(returnDetails.Details, Info{
-									Email:    email,
-									Password: password,
-									Error:    "Incorrect Password",
-								})
-							} else if rpBody, err := ioutil.ReadAll(bodyRP.Body); err != nil {
-								returnDetails.Details = append(returnDetails.Details, Info{
-									Email:    email,
-									Password: password,
-									Error:    "Incorrect Password",
-								})
-							} else if bodyXS, err := client.Post("https://xsts.auth.xboxlive.com/xsts/authorize", "application/json", bytes.NewBuffer([]byte(`{"Properties": {"SandboxId": "RETAIL", "UserTokens": ["`+FindData(string(rpBody), "Token")+`"]}, "RelyingParty": "rp://api.minecraftservices.com/", "TokenType": "JWT"}`))); err != nil {
-								returnDetails.Details = append(returnDetails.Details, Info{
-									Email:    email,
-									Password: password,
-									Error:    "Incorrect Password",
-								})
-							} else if xsBody, err := ioutil.ReadAll(bodyXS.Body); err != nil {
-								returnDetails.Details = append(returnDetails.Details, Info{
-									Email:    email,
-									Password: password,
-									Error:    "Incorrect Password",
-								})
-							} else {
-								switch bodyXS.StatusCode {
-								case 401:
-									switch strings.Contains(string(xsBody), "XErr") {
-									case strings.Contains(string(xsBody), "2148916238"):
-										returnDetails.Details = append(returnDetails.Details, Info{
-											Email:    email,
-											Password: password,
-											Error:    "Account belongs to someone under 18 and needs to be added to a family",
-										})
-										continue
-									case strings.Contains(string(xsBody), "2148916233"):
-										returnDetails.Details = append(returnDetails.Details, Info{
-											Email:    email,
-											Password: password,
-											Error:    "Account has no Xbox account, you must sign up for one first",
-										})
-										continue
-									}
-								}
-								if bodyBearer, err := client.Post("https://api.minecraftservices.com/authentication/login_with_xbox", "application/json", bytes.NewBuffer([]byte(`{"identityToken" : "XBL3.0 x=`+FindData(string(rpBody), "uhs")+`;`+FindData(string(xsBody), "Token")+`", "ensureLegacyEnabled" : true}`))); err != nil {
-									returnDetails.Details = append(returnDetails.Details, Info{
-										Email:    email,
-										Password: password,
-										Error:    "Account has no Xbox account, you must sign up for one first",
-									})
-								} else if bearerValue, err := ioutil.ReadAll(bodyBearer.Body); err != nil {
-									returnDetails.Details = append(returnDetails.Details, Info{
-										Email:    email,
-										Password: password,
-										Error:    "Account has no Xbox account, you must sign up for one first",
-									})
-								} else {
-									var bearerMS mojangData
-									json.Unmarshal(bearerValue, &bearerMS)
-									returnDetails.Details = append(returnDetails.Details, Info{
-										Bearer:      bearerMS.Bearer,
-										Email:       email,
-										Password:    password,
-										AccountType: accountInfo(bearerMS.Bearer),
-										Error:       "",
-									})
-
-									i++
-									continue
-								}
-							}
-						}
+						continue
 					}
 				}
+
+				xsToken := FindData(string(xsBody), "Token")
+				mcBearer := []byte(`{"identityToken" : "XBL3.0 x=` + uhs + `;` + xsToken + `", "ensureLegacyEnabled" : true}`)
+				mcBPOST, _ := http.NewRequest("POST", "https://api.minecraftservices.com/authentication/login_with_xbox", bytes.NewBuffer(mcBearer))
+				mcBPOST.Header.Set("Content-Type", "application/json")
+
+				bodyBearer, _ := client.Do(mcBPOST)
+				bearerValue, _ := ioutil.ReadAll(bodyBearer.Body)
+
+				var bearerMS mojangData
+				json.Unmarshal(bearerValue, &bearerMS)
+
+				returnDetails.Details = append(returnDetails.Details, Info{
+					Bearer:      bearerMS.Bearer,
+					Email:       email,
+					Password:    password,
+					AccountType: accountInfo(bearerMS.Bearer),
+					Error:       "",
+				})
+
+				i++
+				continue
 			}
 		}
 	}
