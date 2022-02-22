@@ -58,7 +58,7 @@ func Sum(array []float64) (sum float64) {
 	return
 }
 
-func CheckChange(bearer string) (Value mojangData) {
+func CheckChange(bearer string) (Value *mojangData) {
 	req, _ := http.NewRequest("GET", "https://api.minecraftservices.com/minecraft/profile/namechange", nil)
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	resp, _ := http.DefaultClient.Do(req)
