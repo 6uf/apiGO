@@ -58,16 +58,22 @@ func Sum(array []float64) (sum float64) {
 	return
 }
 
-func CheckChange(bearer string) (Value *mojangData) {
+func CheckChange(bearer string) bool {
+	type Data struct {
+		Name bool `json:"nameChangeAllowed"`
+	}
+
+	var acc Data
+
 	req, _ := http.NewRequest("GET", "https://api.minecraftservices.com/minecraft/profile/namechange", nil)
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	resp, _ := http.DefaultClient.Do(req)
 
 	authbytes, _ := ioutil.ReadAll(resp.Body)
 
-	json.Unmarshal(authbytes, &Value)
+	json.Unmarshal(authbytes, &acc)
 
-	return
+	return acc.Name
 }
 
 func (payloadInfo Payload) SocketSending(conn *tls.Conn, payload string) (sendTime time.Time, recvTime time.Time, status string) {
