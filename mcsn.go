@@ -59,21 +59,29 @@ func Sum(array []float64) (sum float64) {
 }
 
 func CheckChange(bearer string) bool {
-	type Data struct {
-		Name bool `json:"nameChangeAllowed"`
+	conn, _ := tls.Dial("tcp", "api.minecraftservices.com:443", nil)
+	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: MCSN/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+
+	e := make([]byte, 100)
+	conn.Read(e)
+
+	authbytes := make([]byte, 4096)
+	auth := make(map[string]interface{})
+
+	conn.Read(authbytes)
+	conn.Close()
+
+	authbytes = []byte(strings.Split(strings.Split(string(authbytes), "\x00")[0], "\r\n\r\n")[1])
+	json.Unmarshal(authbytes, &auth)
+
+	if auth["nameChangeAllowed"] != nil {
+		switch auth["nameChangeAllowed"].(bool) {
+		case false:
+			return false
+		}
 	}
 
-	var acc Data
-
-	req, _ := http.NewRequest("GET", "https://api.minecraftservices.com/minecraft/profile/namechange", nil)
-	req.Header.Set("Authorization", "Bearer "+bearer)
-	resp, _ := http.DefaultClient.Do(req)
-
-	authbytes, _ := ioutil.ReadAll(resp.Body)
-
-	json.Unmarshal(authbytes, &acc)
-
-	return acc.Name
+	return true
 }
 
 func (payloadInfo Payload) SocketSending(conn *tls.Conn, payload string) (sendTime time.Time, recvTime time.Time, status string) {
