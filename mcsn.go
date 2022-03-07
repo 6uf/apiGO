@@ -365,7 +365,7 @@ func ReadFile(path string) ([]byte, error) {
 }
 
 func Search(username string) (Data Payload) {
-	Data.resp, Data.errors = http.Get(fmt.Sprintf("https://droptime.site/api/v2/searches/%v", username))
+	Data.resp, Data.errors = http.Get(fmt.Sprintf("https://droptime.herokuapp.com/searches/%v", username))
 	if Data.errors != nil {
 		return
 	}
