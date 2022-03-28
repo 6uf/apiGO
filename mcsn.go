@@ -84,16 +84,16 @@ func CheckChange(bearer string) bool {
 	return true
 }
 
-func SocketSending(conn *tls.Conn, payload string) (sendTime time.Time, recvTime time.Time, status string) {
+func SocketSending(conn *tls.Conn, payload string) Resp {
 	fmt.Fprintln(conn, payload)
-	sendTime = time.Now()
-	
+	sendTime := time.Now()
 	recvd := make([]byte, 4069)
 	conn.Read(recvd)
-	recvTime = time.Now()
-	status = string(recvd[9:12])
-
-	return
+	return Resp{
+		RecvAt:     time.Now(),
+		StatusCode: string(recvd[9:12]),
+		SentAt:     sendTime,
+	}
 }
 
 func (server ServerInfo) SendWebhook(body []byte) (Req *http.Response, err error) {

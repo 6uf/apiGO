@@ -10,6 +10,12 @@ func init() {
 	acc.LoadState()
 }
 
+type Resp struct {
+	SentAt     time.Time
+	RecvAt     time.Time
+	StatusCode string
+}
+
 type Payload struct {
 	Payload []string
 	Conns   []*tls.Conn
