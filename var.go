@@ -2,11 +2,8 @@ package apiGO
 
 import (
 	"crypto/tls"
-	"flag"
 	"net/http"
 	"time"
-
-	"github.com/digitalocean/godo"
 )
 
 func init() {
@@ -58,7 +55,6 @@ type Info struct {
 type Config struct {
 	ChangeSkinLink    string `json:"ChangeSkinLink"`
 	ChangeskinOnSnipe bool   `json:"ChangeskinOnSnipe"`
-	DiscordID         string `json:"DiscordID"`
 	GcReq             int    `json:"GcReq"`
 	MFAReq            int    `json:"MFAReq"`
 	ManualBearer      bool   `json:"ManualBearer"`
@@ -86,9 +82,6 @@ type Bearers struct {
 }
 
 var (
-	redirect       string
-	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
-	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
-	acc            Config
-	Key            *godo.Key
+	redirect string
+	acc      Config
 )

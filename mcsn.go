@@ -84,12 +84,11 @@ func CheckChange(bearer string) bool {
 	return true
 }
 
-func (payloadInfo Payload) SocketSending(conn *tls.Conn, payload string) (sendTime time.Time, recvTime time.Time, status string) {
+func SocketSending(conn *tls.Conn, payload string) (sendTime time.Time, recvTime time.Time, status string) {
 	fmt.Fprintln(conn, payload)
 	sendTime = time.Now()
 
-	recvd := make([]byte, 4069)
-	conn.Read(recvd)
+	recvd, _ := ioutil.ReadAll(conn)
 	recvTime = time.Now()
 	status = string(recvd[9:12])
 
