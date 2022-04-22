@@ -12,13 +12,9 @@ import (
 func (Data *ReqConfig) SnipeReq() (data SentRequests) {
 	var wg sync.WaitGroup
 
-	//fmt.Print(aurora.Sprintf(aurora.Faint(aurora.White("Name: %v - Delay: %v - Droptime: %v\n")), aurora.Red(Data.Name), aurora.Red(Data.Delay), aurora.Red(time.Unix(Data.Droptime, 0))))
-
 	for time.Now().Before(time.Unix(Data.Droptime, 0).Add(-time.Second * 10)) {
 		time.Sleep(time.Second * 1)
 	}
-
-	fmt.Println()
 
 	if Data.Proxy {
 		Clients := Data.Bearers.GenSocketConns(Data.Proxys, Data.Name)
