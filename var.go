@@ -7,7 +7,22 @@ import (
 )
 
 func init() {
-	acc.LoadState()
+	Acc.LoadState()
+	CheckFiles()
+
+	go CheckAccs()
+}
+
+type Name struct {
+	Names string  `json:"name"`
+	Drop  float64 `json:"droptime"`
+}
+
+type Proxys struct {
+	Proxys   *[]string
+	Used     map[string]bool
+	Accounts []Info
+	Conn     *tls.Conn
 }
 
 type Resp struct {
@@ -87,7 +102,32 @@ type Bearers struct {
 	NameChange   bool   `json:"NameChange"`
 }
 
+type ReqConfig struct {
+	Name     string
+	Delay    float64
+	Droptime int64
+	Proxys   Proxys
+	Bearers  MCbearers
+
+	Proxy bool
+}
+
+type SentRequests struct {
+	Requests []Details
+}
+
+type Details struct {
+	ResponseDetails struct {
+		SentAt     time.Time
+		RecvAt     time.Time
+		StatusCode string
+	}
+	Bearer string
+	Email  string
+	Type   string
+}
+
 var (
 	redirect string
-	acc      Config
+	Acc      Config
 )

@@ -10,7 +10,9 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -385,4 +387,98 @@ func Search(username string) (Data Payload) {
 	}
 
 	return
+}
+
+func IsGC(bearer string) string {
+	conn, _ := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
+
+	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Dismal/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+
+	e := make([]byte, 12)
+	conn.Read(e)
+
+	switch string(e[9:12]) {
+	case `404`:
+		return "Giftcard"
+	default:
+		return "Microsoft"
+	}
+}
+
+func CheckFiles() {
+	_, err := os.Open("accounts.txt")
+	if os.IsNotExist(err) {
+		os.Create("accounts.txt")
+	}
+
+	_, err = os.Open("proxys.txt")
+	if os.IsNotExist(err) {
+		os.Create("proxys.txt")
+	}
+
+	_, err = os.Open("names.txt")
+	if os.IsNotExist(err) {
+		os.Create("names.txt")
+	}
+
+	_, err = os.Stat("cropped")
+	if os.IsNotExist(err) {
+		os.MkdirAll("cropped/logs", 0755)
+	}
+}
+
+func Clear() {
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/c", "cls")
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	} else {
+		cmd := exec.Command("clear")
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
+}
+
+func ThreeLetters(option string) ([]string, []int64) {
+	var threeL []string
+	var names []string
+	var droptime []int64
+	var drop []int64
+
+	isAlpha := regexp.MustCompile(`^[A-Za-z]+$`).MatchString
+
+	grabName, _ := http.NewRequest("GET", "http://api.coolkidmacho.com/three", nil)
+	jsonBody, _ := http.DefaultClient.Do(grabName)
+	jsonGather, _ := ioutil.ReadAll(jsonBody.Body)
+
+	var name []Name
+	json.Unmarshal(jsonGather, &name)
+
+	for i := range name {
+		names = append(names, name[i].Names)
+		droptime = append(droptime, int64(name[i].Drop))
+	}
+
+	switch option {
+	case "3c":
+		threeL = names
+		drop = droptime
+	case "3l":
+		for i, username := range names {
+			if !isAlpha(username) {
+			} else {
+				threeL = append(threeL, username)
+				drop = append(drop, droptime[i])
+			}
+		}
+	case "3n":
+		for i, username := range names {
+			if _, err := strconv.Atoi(username); err == nil {
+				threeL = append(threeL, username)
+				drop = append(drop, droptime[i])
+			}
+		}
+	}
+
+	return threeL, drop
 }
