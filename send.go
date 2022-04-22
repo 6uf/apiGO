@@ -115,7 +115,6 @@ func (Data *ReqConfig) SnipeReq() (data SentRequests) {
 				fmt.Print(aurora.Sprintf(aurora.Faint(aurora.White("%v >> [%v] @ %v X %v\n")), aurora.Red(formatTime(request.ResponseDetails.SentAt)), aurora.Red(request.ResponseDetails.StatusCode), aurora.Red(formatTime(request.ResponseDetails.RecvAt)), aurora.Red(request.Email)))
 			}
 		}
-		logSnipe(content, Info.Name)
 
 	*/
 

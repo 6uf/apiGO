@@ -6,13 +6,6 @@ import (
 	"time"
 )
 
-func init() {
-	Acc.LoadState()
-	CheckFiles()
-
-	go CheckAccs()
-}
-
 type Name struct {
 	Names string  `json:"name"`
 	Drop  float64 `json:"droptime"`
