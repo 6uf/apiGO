@@ -439,46 +439,42 @@ func Clear() {
 	}
 }
 
-func ThreeLetters(option string) ([]string, []int64) {
-	var threeL []string
-	var names []string
-	var droptime []int64
-	var drop []int64
+type Names struct {
+	Droptime int64  `json:"droptime"`
+	Name     string `json:"name"`
+	Search   string `json:"searches"`
+}
 
+func ThreeLetters(option string) (Data []Names) {
 	isAlpha := regexp.MustCompile(`^[A-Za-z]+$`).MatchString
-
-	grabName, _ := http.NewRequest("GET", "http://api.coolkidmacho.com/three", nil)
-	jsonBody, _ := http.DefaultClient.Do(grabName)
-	jsonGather, _ := ioutil.ReadAll(jsonBody.Body)
-
-	var name []Name
-	json.Unmarshal(jsonGather, &name)
-
-	for i := range name {
-		names = append(names, name[i].Names)
-		droptime = append(droptime, int64(name[i].Drop))
-	}
-
-	switch option {
-	case "3c":
-		threeL = names
-		drop = droptime
-	case "3l":
-		for i, username := range names {
-			if !isAlpha(username) {
-			} else {
-				threeL = append(threeL, username)
-				drop = append(drop, droptime[i])
-			}
-		}
-	case "3n":
-		for i, username := range names {
-			if _, err := strconv.Atoi(username); err == nil {
-				threeL = append(threeL, username)
-				drop = append(drop, droptime[i])
+	resp, err := http.Get("https://buxflip.com/data/3c")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		jsonB, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			var Temp []Names
+			json.Unmarshal(jsonB, &Temp)
+			switch option {
+			case "3c":
+				Data = Temp
+			case "3l":
+				for _, username := range Temp {
+					if !isAlpha(username.Name) {
+					} else {
+						Data = append(Data, username)
+					}
+				}
+			case "3n":
+				for _, username := range Temp {
+					if _, err := strconv.Atoi(username.Name); err == nil {
+						Data = append(Data, username)
+					}
+				}
 			}
 		}
 	}
-
-	return threeL, drop
+	return
 }
