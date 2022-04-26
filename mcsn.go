@@ -444,6 +444,9 @@ type Names struct {
 	Name     string `json:"name"`
 	Search   string `json:"searches"`
 }
+type Three struct {
+	Data []Names `json:"data"`
+}
 
 func ThreeLetters(option string) (Data []Names) {
 	isAlpha := regexp.MustCompile(`^[A-Za-z]+$`).MatchString
@@ -455,20 +458,20 @@ func ThreeLetters(option string) (Data []Names) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			var Temp []Names
+			var Temp Three
 			json.Unmarshal(jsonB, &Temp)
 			switch option {
 			case "3c":
-				Data = Temp
+				Data = Temp.Data
 			case "3l":
-				for _, username := range Temp {
+				for _, username := range Temp.Data {
 					if !isAlpha(username.Name) {
 					} else {
 						Data = append(Data, username)
 					}
 				}
 			case "3n":
-				for _, username := range Temp {
+				for _, username := range Temp.Data {
 					if _, err := strconv.Atoi(username.Name); err == nil {
 						Data = append(Data, username)
 					}
