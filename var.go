@@ -96,14 +96,12 @@ type Bearers struct {
 }
 
 type Bux struct {
-	Action    string   `json:"action"`
-	Desc      string   `json:"desc"`
-	Code      string   `json:"code"`
-	ID        string   `json:"id"`
-	Error     string   `json:"error"`
-	ThreeChar []Three  `json:"data"`
-	Drop      Droptime `json:"data"`
-	Searches  Searchs  `json:"data"`
+	Action string      `json:"action"`
+	Desc   string      `json:"desc"`
+	Code   string      `json:"code"`
+	ID     string      `json:"id"`
+	Error  string      `json:"error"`
+	Data   interface{} `json:"data"`
 }
 
 type Three struct {

@@ -40,9 +40,11 @@ func BuxDroptime(name string) int {
 	resp, _ := http.Get("https://buxflip.com/data/droptime/" + name)
 	b, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal(b, &data)
-
-	if !reflect.DeepEqual(data.Drop, Droptime{}) {
-		return data.Drop.Droptime
+	if data.Data != nil {
+		Drop := data.Data.(Droptime)
+		if !reflect.DeepEqual(Drop, Droptime{}) {
+			return Drop.Droptime
+		}
 	}
 	return 0
 }
@@ -396,9 +398,11 @@ func Search(username string) string {
 	body, _ := ioutil.ReadAll(req.Body)
 	if req.StatusCode < 300 {
 		json.Unmarshal(body, &data)
-
-		if !reflect.DeepEqual(data.Searches, Searchs{}) {
-			return data.Searches.Searches
+		if data.Data != nil {
+			Searches := data.Data.(Searchs)
+			if !reflect.DeepEqual(Searches, Searchs{}) {
+				return Searches.Searches
+			}
 		}
 	}
 	return ""
@@ -466,20 +470,23 @@ func ThreeLetters(option string) (Data []Three) {
 			fmt.Println(err)
 		} else {
 			json.Unmarshal(jsonB, &data)
-			switch option {
-			case "3c":
-				Data = data.ThreeChar
-			case "3l":
-				for _, username := range data.ThreeChar {
-					if !isAlpha(username.Name) {
-					} else {
-						Data = append(Data, username)
+			if data.Data != nil {
+				ThreeChar := data.Data.([]Three)
+				switch option {
+				case "3c":
+					Data = ThreeChar
+				case "3l":
+					for _, username := range ThreeChar {
+						if !isAlpha(username.Name) {
+						} else {
+							Data = append(Data, username)
+						}
 					}
-				}
-			case "3n":
-				for _, username := range data.ThreeChar {
-					if _, err := strconv.Atoi(username.Name); err == nil {
-						Data = append(Data, username)
+				case "3n":
+					for _, username := range ThreeChar {
+						if _, err := strconv.Atoi(username.Name); err == nil {
+							Data = append(Data, username)
+						}
 					}
 				}
 			}
