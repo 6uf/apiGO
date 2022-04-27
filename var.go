@@ -95,6 +95,37 @@ type Bearers struct {
 	NameChange   bool   `json:"NameChange"`
 }
 
+type Bux struct {
+	Action    string   `json:"action"`
+	Desc      string   `json:"desc"`
+	Code      string   `json:"code"`
+	ID        string   `json:"id"`
+	Error     string   `json:"error"`
+	ThreeChar []Three  `json:"data"`
+	Drop      Droptime `json:"data"`
+	Searches  Searchs  `json:"data"`
+}
+
+type Three struct {
+	Name     string    `json:"name"`
+	Droptime int       `json:"droptime"`
+	Date     time.Time `json:"date"`
+	Searches string    `json:"searches"`
+}
+
+type Droptime struct {
+	Name     string    `json:"name"`
+	Droptime int       `json:"droptime"`
+	Date     time.Time `json:"date"`
+	Searches string    `json:"searches"`
+}
+
+type Searchs struct {
+	Name     string    `json:"name"`
+	Date     time.Time `json:"date"`
+	Searches string    `json:"searches"`
+}
+
 type ReqConfig struct {
 	Name     string
 	Delay    float64

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -34,7 +35,19 @@ func Sleep(dropTime int64, delay float64) {
 	time.Sleep(time.Until(time.Unix(dropTime, 0).Add(time.Millisecond * time.Duration(0-delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
 }
 
-func DropTime(name string) int64 {
+func BuxDroptime(name string) int {
+	var data Bux
+	resp, _ := http.Get("https://buxflip.com/data/droptime/" + name)
+	b, _ := ioutil.ReadAll(resp.Body)
+	json.Unmarshal(b, &data)
+
+	if !reflect.DeepEqual(data.Drop, Droptime{}) {
+		return data.Drop.Droptime
+	}
+	return 0
+}
+
+func StarShoppingDroptime(name string) int64 {
 	resp, _ := http.NewRequest("GET",
 		"http://api.star.shopping/droptime/"+name,
 		nil)
@@ -45,6 +58,16 @@ func DropTime(name string) int64 {
 	var f Payload
 	json.Unmarshal(dropTimeBytes, &f)
 	return f.UNIX
+}
+
+func DropTime(name string) int64 {
+	if Bux := BuxDroptime(name); Bux > 0 {
+		return int64(Bux)
+	}
+	if Star := StarShoppingDroptime(name); Star > 0 {
+		return Star
+	}
+	return 0
 }
 
 func GetConfig(owo []byte) (Config map[string]interface{}) {
@@ -366,27 +389,19 @@ func ReadFile(path string) ([]byte, error) {
 	return ioutil.ReadFile(path)
 }
 
-func Search(username string) (Data Payload) {
-	Data.resp, Data.errors = http.Get(fmt.Sprintf("https://droptime.herokuapp.com/searches/%v", username))
-	if Data.errors != nil {
-		return
-	}
+func Search(username string) string {
+	var data Bux
+	req, _ := http.Get(fmt.Sprintf("https://buxflip.com/data/search/%v", username))
+	defer req.Body.Close()
+	body, _ := ioutil.ReadAll(req.Body)
+	if req.StatusCode < 300 {
+		json.Unmarshal(body, &data)
 
-	defer Data.resp.Body.Close()
-
-	Data.searchBytes, Data.errors = ioutil.ReadAll(Data.resp.Body)
-	if Data.errors != nil {
-		return
-	}
-
-	if Data.resp.StatusCode < 300 {
-		Data.errors = json.Unmarshal(Data.searchBytes, &Data)
-		if Data.errors != nil {
-			return
+		if !reflect.DeepEqual(data.Searches, Searchs{}) {
+			return data.Searches.Searches
 		}
 	}
-
-	return
+	return ""
 }
 
 func IsGC(bearer string) string {
@@ -439,16 +454,8 @@ func Clear() {
 	}
 }
 
-type Names struct {
-	Droptime int64  `json:"droptime"`
-	Name     string `json:"name"`
-	Search   string `json:"searches"`
-}
-type Three struct {
-	Data []Names `json:"data"`
-}
-
-func ThreeLetters(option string) (Data []Names) {
+func ThreeLetters(option string) (Data []Three) {
+	var data Bux
 	isAlpha := regexp.MustCompile(`^[A-Za-z]+$`).MatchString
 	resp, err := http.Get("https://buxflip.com/data/3c")
 	if err != nil {
@@ -458,20 +465,19 @@ func ThreeLetters(option string) (Data []Names) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			var Temp Three
-			json.Unmarshal(jsonB, &Temp)
+			json.Unmarshal(jsonB, &data)
 			switch option {
 			case "3c":
-				Data = Temp.Data
+				Data = data.ThreeChar
 			case "3l":
-				for _, username := range Temp.Data {
+				for _, username := range data.ThreeChar {
 					if !isAlpha(username.Name) {
 					} else {
 						Data = append(Data, username)
 					}
 				}
 			case "3n":
-				for _, username := range Temp.Data {
+				for _, username := range data.ThreeChar {
 					if _, err := strconv.Atoi(username.Name); err == nil {
 						Data = append(Data, username)
 					}
