@@ -96,29 +96,15 @@ type Bearers struct {
 }
 
 type Bux struct {
-	Action string      `json:"action"`
-	Desc   string      `json:"desc"`
-	Code   string      `json:"code"`
-	ID     string      `json:"id"`
-	Error  string      `json:"error"`
-	Data   interface{} `json:"data"`
-}
-
-type Three struct {
-	Name     string    `json:"name"`
-	Droptime int       `json:"droptime"`
-	Date     time.Time `json:"date"`
-	Searches string    `json:"searches"`
+	Action string   `json:"action"`
+	Desc   string   `json:"desc"`
+	Code   string   `json:"code"`
+	ID     string   `json:"id"`
+	Error  string   `json:"error"`
+	Data   Droptime `json:"data"`
 }
 
 type Droptime struct {
-	Name     string    `json:"name"`
-	Droptime int       `json:"droptime"`
-	Date     time.Time `json:"date"`
-	Searches string    `json:"searches"`
-}
-
-type Searchs struct {
 	Name     string    `json:"name"`
 	Droptime int       `json:"droptime"`
 	Date     time.Time `json:"date"`

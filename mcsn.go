@@ -36,16 +36,14 @@ func Sleep(dropTime int64, delay float64) {
 }
 
 func BuxDroptime(name string) int {
-	var data Bux
+	var data Droptime
 	resp, _ := http.Get("https://buxflip.com/data/droptime/" + name)
 	b, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal(b, &data)
-	if data.Data != nil {
-		Drop := data.Data.(Droptime)
-		if !reflect.DeepEqual(Drop, Droptime{}) {
-			return Drop.Droptime
-		}
+	if !reflect.DeepEqual(data, Droptime{}) {
+		return data.Droptime
 	}
+
 	return 0
 }
 
@@ -392,18 +390,17 @@ func ReadFile(path string) ([]byte, error) {
 }
 
 func Search(username string) string {
-	var data Bux
+	var data Droptime
 	req, _ := http.Get(fmt.Sprintf("https://buxflip.com/data/search/%v", username))
 	defer req.Body.Close()
 	body, _ := ioutil.ReadAll(req.Body)
 	if req.StatusCode < 300 {
 		json.Unmarshal(body, &data)
-		if data.Data != nil {
-			Searches := data.Data.(Searchs)
-			if !reflect.DeepEqual(Searches, Searchs{}) {
-				return Searches.Searches
-			}
+
+		if !reflect.DeepEqual(data, Droptime{}) {
+			return data.Searches
 		}
+
 	}
 	return ""
 }
@@ -458,8 +455,8 @@ func Clear() {
 	}
 }
 
-func ThreeLetters(option string) (Data []Three) {
-	var data Bux
+func ThreeLetters(option string) (Data []Droptime) {
+	var data []Droptime
 	isAlpha := regexp.MustCompile(`^[A-Za-z]+$`).MatchString
 	resp, err := http.Get("https://buxflip.com/data/3c")
 	if err != nil {
@@ -470,26 +467,24 @@ func ThreeLetters(option string) (Data []Three) {
 			fmt.Println(err)
 		} else {
 			json.Unmarshal(jsonB, &data)
-			if data.Data != nil {
-				ThreeChar := data.Data.([]Three)
-				switch option {
-				case "3c":
-					Data = ThreeChar
-				case "3l":
-					for _, username := range ThreeChar {
-						if !isAlpha(username.Name) {
-						} else {
-							Data = append(Data, username)
-						}
+			switch option {
+			case "3c":
+				Data = data
+			case "3l":
+				for _, username := range data {
+					if !isAlpha(username.Name) {
+					} else {
+						Data = append(Data, username)
 					}
-				case "3n":
-					for _, username := range ThreeChar {
-						if _, err := strconv.Atoi(username.Name); err == nil {
-							Data = append(Data, username)
-						}
+				}
+			case "3n":
+				for _, username := range data {
+					if _, err := strconv.Atoi(username.Name); err == nil {
+						Data = append(Data, username)
 					}
 				}
 			}
+
 		}
 	}
 	return
