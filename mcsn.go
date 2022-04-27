@@ -390,17 +390,17 @@ func ReadFile(path string) ([]byte, error) {
 }
 
 func Search(username string) string {
-	var data Droptime
-	req, _ := http.Get(fmt.Sprintf("https://buxflip.com/data/search/%v", username))
-	defer req.Body.Close()
-	body, _ := ioutil.ReadAll(req.Body)
-	if req.StatusCode < 300 {
-		json.Unmarshal(body, &data)
-
-		if !reflect.DeepEqual(data, Droptime{}) {
-			return data.Searches
+	var data Bux
+	req, err := http.Get("https://buxflip.com/data/search/" + username)
+	if err == nil {
+		defer req.Body.Close()
+		body, _ := ioutil.ReadAll(req.Body)
+		if req.StatusCode < 300 {
+			json.Unmarshal(body, &data)
+			if !reflect.DeepEqual(data, Droptime{}) {
+				return data.Data.Searches
+			}
 		}
-
 	}
 	return ""
 }
