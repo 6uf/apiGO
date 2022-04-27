@@ -122,6 +122,7 @@ type Droptime struct {
 
 type Searchs struct {
 	Name     string    `json:"name"`
+	Droptime int       `json:"droptime"`
 	Date     time.Time `json:"date"`
 	Searches string    `json:"searches"`
 }
