@@ -95,6 +95,15 @@ type Bearers struct {
 	NameChange   bool   `json:"NameChange"`
 }
 
+type Bux2 struct {
+	Action string     `json:"action"`
+	Desc   string     `json:"desc"`
+	Code   string     `json:"code"`
+	ID     string     `json:"id"`
+	Error  string     `json:"error"`
+	Data   []Droptime `json:"data"`
+}
+
 type Bux struct {
 	Action string   `json:"action"`
 	Desc   string   `json:"desc"`

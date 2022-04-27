@@ -456,7 +456,7 @@ func Clear() {
 }
 
 func ThreeLetters(option string) (Data []Droptime) {
-	var data []Droptime
+	var data Bux2
 	isAlpha := regexp.MustCompile(`^[A-Za-z]+$`).MatchString
 	resp, err := http.Get("https://buxflip.com/data/3c")
 	if err != nil {
@@ -469,16 +469,16 @@ func ThreeLetters(option string) (Data []Droptime) {
 			json.Unmarshal(jsonB, &data)
 			switch option {
 			case "3c":
-				Data = data
+				Data = data.Data
 			case "3l":
-				for _, username := range data {
+				for _, username := range data.Data {
 					if !isAlpha(username.Name) {
 					} else {
 						Data = append(Data, username)
 					}
 				}
 			case "3n":
-				for _, username := range data {
+				for _, username := range data.Data {
 					if _, err := strconv.Atoi(username.Name); err == nil {
 						Data = append(Data, username)
 					}
