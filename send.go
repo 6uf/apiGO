@@ -84,36 +84,6 @@ func (Data *ReqConfig) SnipeReq(Acc Config) (data SentRequests) {
 		return data.Requests[i].ResponseDetails.SentAt.Before(data.Requests[j].ResponseDetails.SentAt)
 	})
 
-	/*
-
-		for _, request := range data.Requests {
-			switch request.ResponseDetails.StatusCode {
-			case "200":
-				content += fmt.Sprintf("+ Sent @ %v | [%v] @ %v ~ %v\n", formatTime(request.ResponseDetails.SentAt), request.ResponseDetails.StatusCode, formatTime(request.ResponseDetails.RecvAt), request.Email)
-				fmt.Print(aurora.Sprintf(aurora.Faint(aurora.White("%v >> [%v] @ %v O %v\n\n")), aurora.Green(formatTime(request.ResponseDetails.SentAt)), aurora.Green(request.ResponseDetails.StatusCode), aurora.Green(formatTime(request.ResponseDetails.RecvAt)), aurora.Green(request.Email)))
-				switch Acc.ChangeskinOnSnipe {
-				case true:
-					SendInfo := ServerInfo{
-						SkinUrl: Acc.ChangeSkinLink,
-					}
-					resp, err := SendInfo.ChangeSkin(JsonValue(skinUrls{Url: SendInfo.SkinUrl, Varient: "slim"}), request.Bearer)
-					if err == nil {
-						if resp.StatusCode == 200 {
-							fmt.Print(aurora.Sprintf(aurora.Faint(aurora.White("[%v] Succesfully Changed your Skin!\n")), aurora.Green(resp.StatusCode)))
-						} else {
-							fmt.Print(aurora.Sprintf(aurora.Faint(aurora.White("[%v] Couldnt Change your Skin..\n")), aurora.Red("ERROR")))
-						}
-					}
-				}
-				removeDetails(request)
-			default:
-				content += fmt.Sprintf("- Sent @ %v >> [%v] @ %v ~ %v\n", formatTime(request.ResponseDetails.SentAt), request.ResponseDetails.StatusCode, formatTime(request.ResponseDetails.RecvAt), request.Email)
-				fmt.Print(aurora.Sprintf(aurora.Faint(aurora.White("%v >> [%v] @ %v X %v\n")), aurora.Red(formatTime(request.ResponseDetails.SentAt)), aurora.Red(request.ResponseDetails.StatusCode), aurora.Red(formatTime(request.ResponseDetails.RecvAt)), aurora.Red(request.Email)))
-			}
-		}
-
-	*/
-
 	return
 }
 
