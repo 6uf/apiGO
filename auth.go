@@ -2,13 +2,19 @@ package apiGO
 
 import (
 	"bufio"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
 
-func (Acc *Config) AuthAccs() (Bearers MCbearers) {
+type Authed struct {
+	Error   string
+	Bearers MCbearers
+}
+
+func (Acc *Config) AuthAccs() (Bearers Authed) {
 	var AccountsVer []string
 	file, _ := os.Open("accounts.txt")
 	scanner := bufio.NewScanner(file)
@@ -23,40 +29,43 @@ func (Acc *Config) AuthAccs() (Bearers MCbearers) {
 	}
 
 	CheckDupes(AccountsVer)
-	AccountsVer = Acc.GrabDetails(AccountsVer, Bearers)
+	for _, data := range Acc.GrabDetails(AccountsVer, Bearers.Bearers) {
+		if data.Error != "" {
+			Bearers.Bearers.Details = append(Bearers.Bearers.Details, Info{
+				Error: data.Error,
+			})
+		} else {
+			Bearers.Bearers.Details = append(Bearers.Bearers.Details, Info{
+				Bearer:      data.Bearers.Bearer,
+				AccountType: data.Bearers.Type,
+				Email:       data.Bearers.Email,
+				Requests:    Acc.GcReq,
+			})
+		}
+	}
 
 	if !Acc.ManualBearer {
-		if len(Acc.Bearers) == 0 {
-			//PrintGrad("No Bearers have been found, please check your details.\n")
-			rewrite("accounts.txt", strings.Join(AccountsVer, "\n"))
-
-			os.Exit(0)
-		} else {
-			Acc.CheckifValid(AccountsVer)
-			rewrite("accounts.txt", strings.Join(AccountsVer, "\n"))
-			if len(AccountsVer) != 0 {
-				for _, Accs := range Acc.Bearers {
-					if Accs.NameChange {
-						if Accs.Type == "Giftcard" {
-							Bearers.Details = append(Bearers.Details, Info{
-								Bearer:      Accs.Bearer,
-								AccountType: Accs.Type,
-								Email:       Accs.Email,
-								Requests:    Acc.GcReq,
-							})
-						} else {
-							Bearers.Details = append(Bearers.Details, Info{
-								Bearer:      Accs.Bearer,
-								AccountType: Accs.Type,
-								Email:       Accs.Email,
-								Requests:    Acc.MFAReq,
-							})
-						}
+		Acc.CheckifValid(AccountsVer)
+		rewrite("accounts.txt", strings.Join(AccountsVer, "\n"))
+		if len(AccountsVer) != 0 {
+			for _, Accs := range Acc.Bearers {
+				if Accs.NameChange {
+					if Accs.Type == "Giftcard" {
+						Bearers.Bearers.Details = append(Bearers.Bearers.Details, Info{
+							Bearer:      Accs.Bearer,
+							AccountType: Accs.Type,
+							Email:       Accs.Email,
+							Requests:    Acc.GcReq,
+						})
+					} else {
+						Bearers.Bearers.Details = append(Bearers.Bearers.Details, Info{
+							Bearer:      Accs.Bearer,
+							AccountType: Accs.Type,
+							Email:       Accs.Email,
+							Requests:    Acc.MFAReq,
+						})
 					}
 				}
-			} else {
-				//PrintGrad("Unable to find any usable Accounts.\n")
-				os.Exit(0)
 			}
 		}
 	}
@@ -64,7 +73,13 @@ func (Acc *Config) AuthAccs() (Bearers MCbearers) {
 	return
 }
 
-func (Acc *Config) GrabDetails(AccountsVer []string, Bearer MCbearers) []string {
+type LogDetails struct {
+	Error   string
+	Content string
+	Bearers Bearers
+}
+
+func (Acc *Config) GrabDetails(AccountsVer []string, Bearer MCbearers) (Logs []LogDetails) {
 	if Acc.ManualBearer {
 		for _, bearer := range AccountsVer {
 			if CheckChange(bearer) {
@@ -77,30 +92,38 @@ func (Acc *Config) GrabDetails(AccountsVer []string, Bearer MCbearers) []string 
 			time.Sleep(time.Second)
 		}
 	} else if Acc.Bearers == nil {
-		//PrintGrad(fmt.Sprintf("Attempting to authenticate %v account(s)\n\n", len(AccountsVer)))
 		for _, Accs := range Auth(AccountsVer).Details {
 			if Accs.Error != "" {
 				AccountsVer = remove(AccountsVer, Accs.Email+":"+Accs.Password)
-				//PrintGrad(fmt.Sprintf("Account %v came up Invalid: %v\n", Accs.Email, Accs.Error))
+				Logs = append(Logs, LogDetails{
+					Error: fmt.Sprintf("Account %v came up Invalid: %v\n", Accs.Email, Accs.Error),
+				})
 			} else {
 				if Accs.Bearer != "" {
 					if CheckChange(Accs.Bearer) {
-						//PrintGrad(fmt.Sprintf("Succesfully authed %v\n", Accs.Email))
-						Acc.Bearers = append(Acc.Bearers, Bearers{
-							Bearer:       Accs.Bearer,
-							AuthInterval: 86400,
-							AuthedAt:     time.Now().Unix(),
-							Type:         Accs.AccountType,
-							Email:        Accs.Email,
-							Password:     Accs.Password,
-							NameChange:   true,
-						})
+						Logs = append(Logs,
+							LogDetails{
+								Content: fmt.Sprintf("Succesfully authed %v\n", Accs.Email),
+								Bearers: Bearers{
+									Bearer:       Accs.Bearer,
+									AuthInterval: 86400,
+									AuthedAt:     time.Now().Unix(),
+									Type:         Accs.AccountType,
+									Email:        Accs.Email,
+									Password:     Accs.Password,
+									NameChange:   true,
+								},
+							})
 					} else {
 						AccountsVer = remove(AccountsVer, Accs.Email+":"+Accs.Password)
-						//PrintGrad(fmt.Sprintf("Account %v Cannot Name Change.\n", Accs.Email))
+						Logs = append(Logs, LogDetails{
+							Error: fmt.Sprintf("Account %v Cannot Name Change.\n", Accs.Email),
+						})
 					}
 				} else {
-					//PrintGrad(fmt.Sprintf("Account %v bearer is nil.\n", Accs.Email))
+					Logs = append(Logs, LogDetails{
+						Error: fmt.Sprintf("Account %v bearer is nil.\n", Accs.Email),
+					})
 				}
 			}
 		}
@@ -122,26 +145,35 @@ func (Acc *Config) GrabDetails(AccountsVer []string, Bearer MCbearers) []string 
 		for _, Accs := range Auth(auth).Details {
 			if Accs.Error != "" {
 				AccountsVer = remove(AccountsVer, Accs.Email+":"+Accs.Password)
-				//PrintGrad(fmt.Sprintf("Account %v came up Invalid: %v\n", Accs.Email, Accs.Error))
+				Logs = append(Logs, LogDetails{
+					Error: fmt.Sprintf("Account %v came up Invalid: %v\n", Accs.Email, Accs.Error),
+				})
 			} else {
 				if Accs.Bearer != "" {
 					if CheckChange(Accs.Bearer) {
-						//PrintGrad(fmt.Sprintf("Succesfully authed %v\n", Accs.Email))
-						Acc.Bearers = append(Acc.Bearers, Bearers{
-							Bearer:       Accs.Bearer,
-							AuthInterval: 86400,
-							AuthedAt:     time.Now().Unix(),
-							Type:         Accs.AccountType,
-							Email:        Accs.Email,
-							Password:     Accs.Password,
-							NameChange:   true,
-						})
+						Logs = append(Logs,
+							LogDetails{
+								Content: fmt.Sprintf("Succesfully authed %v\n", Accs.Email),
+								Bearers: Bearers{
+									Bearer:       Accs.Bearer,
+									AuthInterval: 86400,
+									AuthedAt:     time.Now().Unix(),
+									Type:         Accs.AccountType,
+									Email:        Accs.Email,
+									Password:     Accs.Password,
+									NameChange:   true,
+								},
+							})
 					} else {
 						AccountsVer = remove(AccountsVer, Accs.Email+":"+Accs.Password)
-						//PrintGrad(fmt.Sprintf("Account %v Cannot Name Change.\n", Accs.Email))
+						Logs = append(Logs, LogDetails{
+							Error: fmt.Sprintf("Account %v Cannot Name Change.\n", Accs.Email),
+						})
 					}
 				} else {
-					//PrintGrad(fmt.Sprintf("Account %v bearer is nil.\n", Accs.Email))
+					Logs = append(Logs, LogDetails{
+						Error: fmt.Sprintf("Account %v bearer is nil.\n", Accs.Email),
+					})
 				}
 			}
 		}
@@ -149,16 +181,17 @@ func (Acc *Config) GrabDetails(AccountsVer []string, Bearer MCbearers) []string 
 		for _, Accs := range AccountsVer {
 			for _, num := range Acc.Bearers {
 				if Accs == num.Email+":"+num.Password {
-					Acc.Bearers = append(Acc.Bearers, num)
+					Logs = append(Logs,
+						LogDetails{
+							Content: fmt.Sprintf("Succesfully reloaded %v\n", num.Email),
+							Bearers: num,
+						})
 				}
 			}
 		}
 	}
 
-	Acc.SaveConfig()
-	Acc.LoadState()
-
-	return AccountsVer
+	return
 }
 
 func (Acc *Config) CheckifValid(AccountsVer []string) []string {
