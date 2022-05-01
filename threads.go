@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-func CheckAccs() {
+func (Acc *Config) CheckAccs() {
 	for {
 		time.Sleep(time.Second * 10)
 		// check if the last auth was more than a minute ago

@@ -147,5 +147,4 @@ type Details struct {
 
 var (
 	redirect string
-	Acc      Config
 )

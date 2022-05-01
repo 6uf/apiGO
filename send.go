@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (Data *ReqConfig) SnipeReq() (data SentRequests) {
+func (Data *ReqConfig) SnipeReq(Acc Config) (data SentRequests) {
 	var wg sync.WaitGroup
 
 	for time.Now().Before(time.Unix(Data.Droptime, 0).Add(-time.Second * 10)) {
