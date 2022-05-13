@@ -15,19 +15,18 @@ import (
 )
 
 func (Proxy *Proxys) GetProxys() {
-	Proxy.Proxys = &[]string{}
 	file, err := os.Open("proxys.txt")
 	defer file.Close()
 	if err == nil {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			*Proxy.Proxys = append(*Proxy.Proxys, scanner.Text())
-			fmt.Println(*Proxy.Proxys)
 		}
 	}
 }
 
 func (Proxy *Proxys) Setup() {
+	Proxy.Used = make(map[string]bool)
 	for _, proxy := range *Proxy.Proxys {
 		Proxy.Used[proxy] = false
 	}
