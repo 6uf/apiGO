@@ -44,7 +44,7 @@ func (Proxy *Proxys) RandProxy() string {
 	}
 }
 
-func (Bearers *MCbearers) GenSocketConns(Proxy Proxys, name string) (pro []Proxys) {
+func (Bearers *MCbearers) GenSocketConns(Proxy ReqConfig, name string) (pro []Proxys) {
 	var Accs [][]Info
 	var incr int
 	var use int
@@ -95,7 +95,7 @@ func (Bearers *MCbearers) GenSocketConns(Proxy Proxys, name string) (pro []Proxy
 		wg.Add(1)
 		go func(Accs []Info) {
 			var user, pass, ip, port string
-			auth := strings.Split(Proxy.RandProxy(), ":")
+			auth := strings.Split(Proxy.Proxys.RandProxy(), ":")
 			ip, port = auth[0], auth[1]
 			if len(auth) > 2 {
 				user, pass = auth[2], auth[3]

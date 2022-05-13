@@ -17,7 +17,7 @@ func (Data *ReqConfig) SnipeReq(Acc Config) (data SentRequests) {
 	}
 
 	if Data.Proxy {
-		Clients := Data.Bearers.GenSocketConns(Data.Proxys, Data.Name)
+		Clients := Data.Bearers.GenSocketConns(*Data, Data.Name)
 		time.Sleep(time.Until(time.Unix(Data.Droptime, 0).Add(time.Millisecond * time.Duration(0-Data.Delay)).Add(time.Duration(-float64(time.Since(time.Now()).Nanoseconds())/1000000.0) * time.Millisecond)))
 		for _, config := range Clients {
 			wg.Add(1)
