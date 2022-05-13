@@ -36,7 +36,6 @@ func (Proxy *Proxys) Setup() {
 func (Proxy *Proxys) RandProxy() string {
 	for {
 		rand.Seed(time.Now().UnixNano())
-		fmt.Println(Proxy.Proxys)
 		proxy := (*Proxy.Proxys)[rand.Intn(len(*Proxy.Proxys))]
 		if !Proxy.Used[proxy] {
 			Proxy.Used[proxy] = true
