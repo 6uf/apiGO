@@ -15,6 +15,7 @@ import (
 )
 
 func (Proxy *Proxys) GetProxys() {
+	Proxy.Proxys = &[]string{}
 	file, err := os.Open("proxys.txt")
 	defer file.Close()
 	if err == nil {
