@@ -16,7 +16,7 @@ import (
 
 func (Proxy *Proxys) GetProxys() {
 	Proxy.Proxys = &[]string{}
-	file, err := os.Open("Proxys.txt")
+	file, err := os.Open("proxys.txt")
 	defer file.Close()
 	if err == nil {
 		scanner := bufio.NewScanner(file)
