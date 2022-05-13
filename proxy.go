@@ -22,6 +22,7 @@ func (Proxy *Proxys) GetProxys() {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			*Proxy.Proxys = append(*Proxy.Proxys, scanner.Text())
+			fmt.Println(*Proxy.Proxys)
 		}
 	}
 }
