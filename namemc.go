@@ -25,18 +25,18 @@ func (Data Details) ClaimNameMC(Acc Config) (URL string) {
 		GameStart: func() error {
 			go func() {
 				time.Sleep(time.Millisecond * 500)
-				C.Conn.WritePacket(pk.Marshal(
-					0x03,
-					pk.String("/namemc"),
-				))
-
 				if Acc.SendMCSNAd {
-					time.Sleep(time.Millisecond * 1500)
 					C.Conn.WritePacket(pk.Marshal(
 						0x03,
 						pk.String("Succesfully sniped using MCSN"),
 					))
+					time.Sleep(time.Millisecond * 1200)
 				}
+
+				C.Conn.WritePacket(pk.Marshal(
+					0x03,
+					pk.String("/namemc"),
+				))
 			}()
 			return nil
 		},
