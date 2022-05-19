@@ -80,10 +80,12 @@ type Config struct {
 }
 
 type Logs struct {
-	Email   string    `json:"email"`
-	Send    time.Time `json:"send"`
-	Recv    time.Time `json:"recv"`
-	Success bool      `json:"success"`
+	Email    string    `json:"email"`
+	Password string    `json:"password"`
+	Send     time.Time `json:"send"`
+	Recv     time.Time `json:"recv"`
+	Success  bool      `json:"success"`
+	Name     string    `json:"name"`
 }
 
 type UserINFO struct {
