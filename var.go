@@ -74,6 +74,7 @@ type Config struct {
 	MFAReq            int    `json:"MFAReq"`
 	ManualBearer      bool   `json:"ManualBearer"`
 	SpreadPerReq      int    `json:"SpreadPerReq"`
+	SendMCSNAd        bool   `json:"SendMCSN_MsgUponBMJoin"`
 
 	Bearers []Bearers `json:"Bearers"`
 	Logs    []Logs    `json:"logs"`

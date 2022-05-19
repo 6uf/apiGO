@@ -361,6 +361,7 @@ func (s *Config) LoadState() {
 		s.SpreadPerReq = 40
 		s.ChangeskinOnSnipe = true
 		s.ChangeSkinLink = "https://textures.minecraft.net/texture/516accb84322ca168a8cd06b4d8cc28e08b31cb0555eee01b64f9175cefe7b75"
+		s.SendMCSNAd = false
 		s.SaveConfig()
 		return
 	}

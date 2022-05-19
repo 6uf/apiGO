@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (Data Details) ClaimNameMC() (URL string) {
+func (Data Details) ClaimNameMC(Acc Config) (URL string) {
 	C := bot.NewClient()
 
 	C.Auth = bot.Auth{
@@ -29,6 +29,13 @@ func (Data Details) ClaimNameMC() (URL string) {
 					0x03,
 					pk.String("/namemc"),
 				))
+
+				if Acc.SendMCSNAd {
+					C.Conn.WritePacket(pk.Marshal(
+						0x03,
+						pk.String("Succesfully sniped using MCSN"),
+					))
+				}
 			}()
 			return nil
 		},
