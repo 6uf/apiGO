@@ -33,6 +33,7 @@ func (Data *ReqConfig) SnipeReq(Acc Config) (data SentRequests) {
 									Bearer:          Account.Bearer,
 									Email:           Account.Email,
 									Type:            Account.AccountType,
+									Info:            Acc.Info,
 								})
 								wgs.Done()
 							}(Acc, fmt.Sprintf("POST /minecraft/profile HTTP/1.1\r\nHost: api.minecraftservices.com\r\nConnection: open\r\nContent-Length:%v\r\nContent-Type: application/json\r\nAccept: application/json\r\nAuthorization: Bearer %v\r\n\r\n{\"profileName\":\"%v\"}\r\n", len(`{"profileName":"`+Data.Name+`"}`), Acc.Bearer, Data.Name))
@@ -46,6 +47,7 @@ func (Data *ReqConfig) SnipeReq(Acc Config) (data SentRequests) {
 									Bearer:          Account.Bearer,
 									Email:           Account.Email,
 									Type:            Account.AccountType,
+									Info:            Acc.Info,
 								})
 								wgs.Done()
 							}(Acc, "PUT /minecraft/profile/name/"+Data.Name+" HTTP/1.1\r\nHost: api.minecraftservices.com\r\nConnection: open\r\nUser-Agent: MCSN/1.0\r\nAuthorization: bearer "+Acc.Bearer+"\r\n\r\n")

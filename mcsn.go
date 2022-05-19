@@ -296,8 +296,8 @@ func Auth(accounts []string) (returnDetails MCbearers) {
 									Email:       email,
 									Password:    password,
 									AccountType: accountInfo(bearerMS.Bearer_MS),
+									Info:        GetProfileInformation(bearerMS.Bearer_MS),
 								})
-
 								i++
 								continue
 							}
@@ -488,4 +488,21 @@ func ThreeLetters(option string) (Data []Droptime) {
 		}
 	}
 	return
+}
+
+func GetProfileInformation(bearer string) (Data UserINFO) {
+	req, _ := http.NewRequest("GET", "https://api.minecraftservices.com/minecraft/profile", nil)
+	req.Header.Add("Authorization", "Bearer "+bearer)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return UserINFO{}
+	} else if resp.StatusCode == 200 {
+		if body, err := ioutil.ReadAll(resp.Body); err != nil {
+			return UserINFO{}
+		} else {
+			json.Unmarshal(body, &Data)
+			return Data
+		}
+	}
+	return UserINFO{}
 }

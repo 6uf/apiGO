@@ -63,6 +63,7 @@ type Info struct {
 	Email       string
 	Password    string
 	Requests    int
+	Info        UserINFO `json:"Info"`
 	Error       string
 }
 
@@ -85,14 +86,20 @@ type Logs struct {
 	Success bool      `json:"success"`
 }
 
+type UserINFO struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type Bearers struct {
-	Bearer       string `json:"Bearer"`
-	Email        string `json:"Email"`
-	Password     string `json:"Password"`
-	AuthInterval int64  `json:"AuthInterval"`
-	AuthedAt     int64  `json:"AuthedAt"`
-	Type         string `json:"Type"`
-	NameChange   bool   `json:"NameChange"`
+	Bearer       string   `json:"Bearer"`
+	Email        string   `json:"Email"`
+	Password     string   `json:"Password"`
+	AuthInterval int64    `json:"AuthInterval"`
+	AuthedAt     int64    `json:"AuthedAt"`
+	Type         string   `json:"Type"`
+	NameChange   bool     `json:"NameChange"`
+	Info         UserINFO `json:"Info"`
 }
 
 type Bux2 struct {
@@ -143,6 +150,7 @@ type Details struct {
 	Bearer string
 	Email  string
 	Type   string
+	Info   UserINFO
 }
 
 var (
