@@ -149,10 +149,11 @@ type Details struct {
 		RecvAt     time.Time
 		StatusCode string
 	}
-	Bearer string
-	Email  string
-	Type   string
-	Info   UserINFO
+	Bearer   string
+	Email    string
+	Password string
+	Type     string
+	Info     UserINFO
 }
 
 var (

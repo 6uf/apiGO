@@ -13,9 +13,6 @@ import (
 )
 
 func (Data Details) ClaimNameMC() (URL string) {
-	if Data.Info.ID == "" {
-		Data.Info = GetProfileInformation(Data.Bearer)
-	}
 	C := bot.NewClient()
 
 	C.Auth = bot.Auth{

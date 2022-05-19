@@ -47,6 +47,7 @@ func (Data *ReqConfig) SnipeReq(Acc Config) (data SentRequests) {
 									Bearer:          Account.Bearer,
 									Email:           Account.Email,
 									Type:            Account.AccountType,
+									Password:        Account.Password,
 									Info:            Acc.Info,
 								})
 								wgs.Done()
