@@ -31,6 +31,7 @@ func (Data Details) ClaimNameMC(Acc Config) (URL string) {
 				))
 
 				if Acc.SendMCSNAd {
+					time.Sleep(time.Millisecond * 1500)
 					C.Conn.WritePacket(pk.Marshal(
 						0x03,
 						pk.String("Succesfully sniped using MCSN"),
