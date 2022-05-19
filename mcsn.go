@@ -130,7 +130,7 @@ func (server ServerInfo) SendWebhook(body []byte) (Req *http.Response, err error
 	return
 }
 
-func (server ServerInfo) ChangeSkin(body []byte, bearer string) (Req *http.Response, err error) {
+func ChangeSkin(body []byte, bearer string) (Req *http.Response, err error) {
 	resp, err := http.NewRequest("POST", "https://api.minecraftservices.com/minecraft/profile/skins", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
