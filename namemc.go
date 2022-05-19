@@ -25,14 +25,6 @@ func (Data Details) ClaimNameMC(Acc Config) (URL string) {
 		GameStart: func() error {
 			go func() {
 				time.Sleep(time.Millisecond * 500)
-				if Acc.SendMCSNAd {
-					C.Conn.WritePacket(pk.Marshal(
-						0x03,
-						pk.String("Succesfully sniped using MCSN"),
-					))
-					time.Sleep(time.Millisecond * 1200)
-				}
-
 				C.Conn.WritePacket(pk.Marshal(
 					0x03,
 					pk.String("/namemc"),
@@ -52,6 +44,13 @@ func (Data Details) ClaimNameMC(Acc Config) (URL string) {
 	C.JoinServer("blockmania.com")
 
 	if err := C.HandleGame(); err != nil && strings.Contains(err.Error(), "got-key:200") {
+		if Acc.SendMCSNAd {
+			time.Sleep(time.Millisecond * 1200)
+			C.Conn.WritePacket(pk.Marshal(
+				0x03,
+				pk.String("Succesfully sniped using MCSN"),
+			))
+		}
 		return
 	}
 
