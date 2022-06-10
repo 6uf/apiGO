@@ -507,3 +507,20 @@ func GetProfileInformation(bearer string) (Data UserINFO) {
 	}
 	return UserINFO{}
 }
+
+func AccountType(bearer string) string {
+	var accountT string
+	conn, _ := tls.Dial("tcp", "api.minecraftservices.com"+":443", nil)
+	fmt.Fprintln(conn, "GET /minecraft/profile/namechange HTTP/1.1\r\nHost: api.minecraftservices.com\r\nUser-Agent: Alien/1.0\r\nAuthorization: Bearer "+bearer+"\r\n\r\n")
+
+	e := make([]byte, 12)
+	conn.Read(e)
+
+	switch string(e[9:12]) {
+	case `404`:
+		accountT = "giftcard"
+	default:
+		accountT = "microsoft"
+	}
+	return accountT
+}

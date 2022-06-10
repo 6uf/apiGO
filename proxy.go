@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-func (Proxy *Proxys) GetProxys() {
+func (Proxy *Proxys) GetProxys(uselist bool, list []string) {
 	Proxy.Proxys = &[]string{}
 	file, err := os.Open("proxys.txt")
 	defer file.Close()
