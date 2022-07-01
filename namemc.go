@@ -40,7 +40,7 @@ func NameMC(Bearer string) string {
 	}.Attach(C)
 	C.JoinServer("blockmania.com")
 	if err := C.HandleGame(); err != nil && strings.Contains(err.Error(), "got-key") {
-		return strings.Split(err.Error(), ":")[0]
+		return strings.Split(err.Error(), ":")[2]
 	}
 	return "Error: Unable to find a valid url."
 }
