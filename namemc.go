@@ -33,14 +33,14 @@ func NameMC(Bearer string) string {
 		},
 		ChatMsg: func(c chat.Message, pos byte, uuid uuid.UUID) error {
 			if KEY := c.ClearString(); strings.Contains(KEY, "https://namemc.com/claim?key=") {
-				return errors.New("got-key:" + KEY)
+				return errors.New("got-key+" + KEY)
 			}
 			return nil
 		},
 	}.Attach(C)
 	C.JoinServer("blockmania.com")
 	if err := C.HandleGame(); err != nil && strings.Contains(err.Error(), "got-key") {
-		return strings.Split(err.Error(), ":")[2]
+		return strings.Split(err.Error(), "+")[1]
 	}
 	return "Error: Unable to find a valid url."
 }
