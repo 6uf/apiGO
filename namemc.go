@@ -12,15 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func (Data Details) ClaimNameMC(Acc Config) (URL string) {
+func NameMC(Bearer string) string {
 	C := bot.NewClient()
-
+	B := GetProfileInformation(Bearer)
 	C.Auth = bot.Auth{
-		AsTk: Data.Bearer,
-		Name: Data.Info.Name,
-		UUID: Data.Info.ID,
+		AsTk: Bearer,
+		UUID: B.ID,
+		Name: B.Name,
 	}
-
 	basic.EventsListener{
 		GameStart: func() error {
 			go func() {
@@ -33,26 +32,15 @@ func (Data Details) ClaimNameMC(Acc Config) (URL string) {
 			return nil
 		},
 		ChatMsg: func(c chat.Message, pos byte, uuid uuid.UUID) error {
-			cStr := c.ClearString()
-			if strings.Contains(cStr, "https://namemc.com/claim?key=") {
-				URL = cStr
-				return errors.New("got-key:200")
+			if KEY := c.ClearString(); strings.Contains(KEY, "https://namemc.com/claim?key=") {
+				return errors.New("got-key:" + KEY)
 			}
 			return nil
 		},
 	}.Attach(C)
 	C.JoinServer("blockmania.com")
-
-	if err := C.HandleGame(); err != nil && strings.Contains(err.Error(), "got-key:200") {
-		if Acc.SendMCSNAd {
-			time.Sleep(time.Millisecond * 1200)
-			C.Conn.WritePacket(pk.Marshal(
-				0x03,
-				pk.String("Succesfully sniped using MCSN"),
-			))
-		}
-		return
+	if err := C.HandleGame(); err != nil && strings.Contains(err.Error(), "got-key") {
+		return strings.Split(err.Error(), ":")[1]
 	}
-
-	return "Unable to find URL"
+	return "Error: Unable to find a valid url."
 }
