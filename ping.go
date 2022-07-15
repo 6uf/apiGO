@@ -5,13 +5,16 @@ import (
 	"time"
 )
 
-// https://github.com/overestimate/awm-src/blob/master/httping.go (used from emmas awm sniper check it out)
-
 func PingMC() float64 {
+	var pingTimes float64
 	conn, _ := tls.Dial("tcp", "api.minecraftservices.com:443", nil)
-	tmpVar := make([]byte, 4096)
-	t1 := time.Now()
-	conn.Write([]byte("HEAD /minecraft/profile HTTP/1.1\r\nUser-Agent: httping.go/0.1\r\n\r\n"))
-	conn.Read(tmpVar)
-	return float64(time.Now().Sub(t1).Milliseconds())
+	defer conn.Close()
+	for i := 0; i < 10; i++ {
+		recv := make([]byte, 4096)
+		time1 := time.Now()
+		conn.Write([]byte("PUT /minecraft/profile/name/test HTTP/1.1\r\nHost: api.minecraftservices.com\r\nAuthorization: Bearer TestToken\r\n\r\n"))
+		conn.Read(recv)
+		pingTimes += float64(time.Since(time1).Milliseconds())
+	}
+	return float64(pingTimes/10000) * 5000
 }
